@@ -1,0 +1,20 @@
+{
+  "name": "printable",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.4.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @printable/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "worker": "cd apps/blender-worker && uv run uvicorn src.main:app --reload --port 8080"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

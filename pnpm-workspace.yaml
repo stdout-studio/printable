@@ -1,0 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Both are trusted native-binary build steps:
+# - esbuild compiles its native binary used by Next's bundler
+# - sharp ships native libvips bindings for Next's image optimizer
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+  # onnxruntime-node ships native ORT binaries needed by @huggingface/transformers
+  # to run SigLIP/CLIP locally. protobufjs is its serialization dep.
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true
+
+# Anthropic SDK 0.99.0 was published recently; opt it past the default release-age gate.
+minimumReleaseAgeExclude:
+  - '@anthropic-ai/sdk'

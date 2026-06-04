@@ -1,0 +1,46 @@
+# Minimal docker-compose for self-hosting Printable.
+#
+# 1. Copy .env.example to .env and fill in your ANTHROPIC_API_KEY
+# 2. docker compose up --build
+# 3. Open http://localhost:3000 — the setup wizard greets you on first boot
+#
+# The Blender worker that powers actual mesh editing is intentionally
+# commented out below — Blender's runtime is heavy (several hundred MB)
+# and not every self-host scenario needs it. The web app degrades
+# gracefully without the worker: the AI agent runs in mock mode and tells
+# you it can't perform edits. See docs/self-host-blender.md to enable
+# the full stack.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: printable-web:local
+    restart: unless-stopped
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    environment:
+      # Forwarded from the host .env file (docker-compose auto-loads it).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      STDOUT_MODE: local
+      STDOUT_DATA_DIR: /app/data
+      STDOUT_ALLOW_SIGNUPS: ${STDOUT_ALLOW_SIGNUPS:-false}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      BLENDER_WORKER_URL: ${BLENDER_WORKER_URL:-http://blender-worker:8080}
+    volumes:
+      - printable-data:/app/data
+
+  # Uncomment to enable AI-driven mesh editing. Requires the
+  # blender-worker image (see docs/self-host-blender.md to build it).
+  #
+  # blender-worker:
+  #   build:
+  #     context: ./apps/blender-worker
+  #   image: printable-blender-worker:local
+  #   restart: unless-stopped
+  #   expose:
+  #     - '8080'
+
+volumes:
+  printable-data:

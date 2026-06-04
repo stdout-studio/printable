@@ -1,0 +1,46 @@
+{
+  "name": "@printable/indexer",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./search": {
+      "types": "./dist/search/index.d.ts",
+      "default": "./dist/search/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "download": "tsx src/download-slice100k.ts",
+    "embed": "tsx src/embed.ts",
+    "build-index": "tsx src/build-index.ts",
+    "all": "pnpm download && pnpm embed && pnpm build-index",
+    "search": "tsx src/search/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.99.0",
+    "@huggingface/transformers": "4.2.0",
+    "@lancedb/lancedb": "0.29.0",
+    "@printable/types": "workspace:*",
+    "apache-arrow": "18.1.0",
+    "csv-parse": "6.2.1",
+    "tar-stream": "3.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.1",
+    "@types/tar-stream": "3.1.4",
+    "tsx": "4.21.0",
+    "typescript": "6.0.3"
+  }
+}
