@@ -5,6 +5,7 @@ import { SYSTEM_PROMPT } from './prompt';
 import { MESH_MUTATING_TOOLS, TOOLS } from './tools';
 
 export type AgentEvent =
+  | { type: 'turn_start' }
   | { type: 'text_delta'; text: string }
   | { type: 'tool_use_start'; toolName: string; toolUseId: string; input: unknown }
   | {
@@ -119,8 +120,27 @@ export class PrintableAgent {
         messages,
       });
 
+      // Tell the UI we're working *before* a single token comes back, so the
+      // assistant bubble shows a "Thinking…" pulse instead of sitting empty
+      // through a long extended-thinking pass.
+      yield { type: 'turn_start' };
+
       for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        if (event.type === 'content_block_start') {
+          // Surface tool calls the instant the model commits to one — not
+          // after the entire stream finalizes. Input here is still empty
+          // (the SDK fills it via input_json_delta); the dispatch loop
+          // below re-emits with the full input and the client merges by id.
+          const block = event.content_block;
+          if (block.type === 'tool_use') {
+            yield {
+              type: 'tool_use_start',
+              toolName: block.name,
+              toolUseId: block.id,
+              input: block.input,
+            };
+          }
+        } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
           yield { type: 'text_delta', text: event.delta.text };
         }
       }

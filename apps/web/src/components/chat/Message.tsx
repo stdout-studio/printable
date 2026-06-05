@@ -10,6 +10,13 @@ export function Message({ message }: { message: ChatMessage }) {
   const annotations = useSessionStore((s) => s.annotations);
   const isUser = message.role === 'user';
 
+  // While the agent is working but has no visible output yet (text or
+  // op steps), show a "Thinking…" pulse so the assistant bubble isn't
+  // staring at the user as a blank box during a long thinking turn.
+  const hasText = message.content.some((c) => c.type !== 'text' || c.text.length > 0);
+  const hasOps = (message.ops?.length ?? 0) > 0;
+  const showThinking = !isUser && message.pending && !hasText && !hasOps;
+
   return (
     <div className={clsx('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
@@ -67,6 +74,12 @@ export function Message({ message }: { message: ChatMessage }) {
             {message.ops.map((op) => (
               <OpRow key={op.toolUseId} op={op} />
             ))}
+          </div>
+        )}
+        {showThinking && (
+          <div className="flex items-center gap-2 text-[11px] mono text-[var(--fg-dim)]">
+            <span className="kerf-pulse h-1.5 w-1.5 rounded-full bg-[var(--status-process)]" />
+            Thinking…
           </div>
         )}
       </div>

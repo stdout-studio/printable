@@ -14,6 +14,7 @@ const DRAWING_TOKEN_REGEX = /@(d\d+)/g;
 
 interface AgentEvent {
   type:
+    | 'turn_start'
     | 'text_delta'
     | 'tool_use_start'
     | 'tool_result'
@@ -48,6 +49,7 @@ export function Composer() {
   const appendTextToMessage = useSessionStore((s) => s.appendTextToMessage);
   const addOpStep = useSessionStore((s) => s.addOpStep);
   const updateOpStep = useSessionStore((s) => s.updateOpStep);
+  const setMessagePending = useSessionStore((s) => s.setMessagePending);
   const clearPoints = useSessionStore((s) => s.clearPoints);
 
   function captureViewportSnapshot(): string | null {
@@ -138,9 +140,13 @@ export function Composer() {
     const viewportSnapshot = captureViewportSnapshot();
 
     appendMessage({ role: 'user', content: parsed });
+    // Mark the assistant bubble pending so the UI shows a "Thinking…" pulse
+    // immediately — without this the bubble sits visually empty for the
+    // full duration of any extended-thinking turn.
     const assistantMsg = appendMessage({
       role: 'assistant',
       content: [{ type: 'text', text: '' }],
+      pending: true,
     });
 
     // Include the raw STL bytes for every imported mesh so the API route can
@@ -199,7 +205,12 @@ export function Composer() {
           } catch {
             continue;
           }
-          if (event.type === 'text_delta' && typeof event.text === 'string') {
+          if (event.type === 'turn_start') {
+            // Redundant with the client-side default we set on submit, but
+            // re-arms the pulse if a later turn starts with no text yet.
+            setMessagePending(assistantMsg.id, true);
+          } else if (event.type === 'text_delta' && typeof event.text === 'string') {
+            setMessagePending(assistantMsg.id, false);
             appendTextToMessage(assistantMsg.id, event.text);
           } else if (event.type === 'mesh_updated' && event.webMeshId && event.stlBase64) {
             // Worker just returned a new STL — re-parse and swap geometry in
@@ -237,6 +248,9 @@ export function Composer() {
           } else if (event.type === 'tool_use_start' && event.toolUseId && event.toolName) {
             // Surface the agent's tool call as a live operation step (the
             // flight-recorder), instead of hiding it as silent build chatter.
+            // An eager emit (empty input) and a later emit (full input)
+            // both land here — the store merges by toolUseId.
+            setMessagePending(assistantMsg.id, false);
             addOpStep(assistantMsg.id, {
               toolUseId: event.toolUseId,
               name: event.toolName,
@@ -262,6 +276,9 @@ export function Composer() {
       appendTextToMessage(assistantMsg.id, `\n\n[network error: ${msg}]`);
     } finally {
       setSending(false);
+      // The turn is done — even if it errored out, kill the pulse so the
+      // bubble settles into whatever content (or error note) made it down.
+      setMessagePending(assistantMsg.id, false);
       // Points are one-prompt helpers — clear ALL of them after the agent
       // finishes the turn, even ones the user didn't explicitly @-reference.
       // They were part of the context for this turn either way, and leaving
