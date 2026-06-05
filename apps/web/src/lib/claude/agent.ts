@@ -133,8 +133,12 @@ export class PrintableAgent {
     const messages = buildContextMessages(input);
 
     for (let turn = 0; turn < this.maxTurns; turn++) {
-      // effort='xhigh' is Opus-4.7-only. For Sonnet drop to 'high'.
-      const effort = this.model.startsWith('claude-opus-4-7') ? 'xhigh' : 'high';
+      // effort='xhigh' is Opus-4.7-only. Sonnet on 'high' was burning 10+
+      // minutes of extended thinking on multi-turn conversations with
+      // images before emitting a single tool call — feels indistinguishable
+      // from broken. 'medium' still reasons well for this scale of geom
+      // work and turns feel interactive.
+      const effort = this.model.startsWith('claude-opus-4-7') ? 'xhigh' : 'medium';
       const stream = this.anthropic.messages.stream({
         model: this.model,
         max_tokens: 100000,
