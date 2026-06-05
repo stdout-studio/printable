@@ -36,7 +36,13 @@ export interface MeasureInput {
   meshId?: string;
 }
 
-const CALL_TIMEOUT_MS = 30_000;
+// Match the worker's own per-op cap (`session.transport.call` uses
+// timeout=120s for apply_operation) with a buffer. A raw_bpy script doing
+// 3 button pockets + 6 cable through-holes is 9 booleans on a heavy mesh
+// — the 30s we used to enforce here aborted partway through, and the
+// fall-through mock told the model "worker not deployed", which it then
+// (badly) summarized as "I can't reach my edit tools".
+const CALL_TIMEOUT_MS = 180_000;
 
 export class BlenderClient {
   private sessionIdPromise: Promise<string> | null = null;

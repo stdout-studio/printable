@@ -49,7 +49,13 @@ function extractInbandError(result: unknown): string | undefined {
   }
   if (r.mocked === true) {
     const reason = typeof r.reason === 'string' ? r.reason : 'no reason given';
-    return `mocked: ${reason}`;
+    // `worker_status` is set by the BlenderClient catch path with the
+    // underlying fetch failure (timeout, ECONNREFUSED, abort, …). It's
+    // the line that tells us what *actually* went wrong vs. the generic
+    // "mocked" canned reason.
+    const status =
+      typeof r.worker_status === 'string' ? ` [${r.worker_status}]` : '';
+    return `mocked: ${reason}${status}`;
   }
   if (r.session_expired === true) return 'session_expired';
   if (r.worker_error === true) {
