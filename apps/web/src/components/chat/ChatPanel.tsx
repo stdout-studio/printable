@@ -1,28 +1,19 @@
 'use client';
 
 import { useSessionStore } from '@/lib/store/session';
-import { appConfig } from '@/platform/app-config';
 import { BrandMark } from '@/platform/BrandMark';
 import { Composer } from './Composer';
 import { Message } from './Message';
+import { ProjectSwitcher } from './ProjectSwitcher';
 
 export function ChatPanel() {
   const messages = useSessionStore((s) => s.messages);
-  const reset = useSessionStore((s) => s.reset);
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BrandMark size={18} />
-          <h1 className="text-base font-semibold tracking-tight lowercase">{appConfig.name}</h1>
-        </div>
-        <button
-          onClick={reset}
-          className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-fg-dim)] hover:text-[var(--flux)] transition-colors"
-        >
-          New
-        </button>
+      <header className="px-3 py-2.5 border-b border-[var(--color-border)] flex items-center gap-2">
+        <BrandMark size={18} className="flex-shrink-0" />
+        <ProjectSwitcher />
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">

@@ -28,6 +28,10 @@ interface SessionActions {
   setContextMesh: (id: string | null) => void;
   setActiveMesh: (id: string | null) => void;
   reset: () => void;
+  /** Replace the entire live session with a persisted project snapshot
+   *  (used by the multi-project switcher). Geometry is rehydrated separately
+   *  in the runtime store from the project's cached mesh bytes. */
+  hydrate: (snapshot: SessionState) => void;
 }
 
 type SessionStore = SessionState & SessionActions;
@@ -118,4 +122,17 @@ export const useSessionStore = create<SessionStore>()((set, get) => ({
   setContextMesh: (id) => set({ contextMeshId: id }),
   setActiveMesh: (id) => set({ activeMeshId: id }),
   reset: () => set(initialState()),
+  hydrate: (snapshot) =>
+    set({
+      id: snapshot.id,
+      createdAt: snapshot.createdAt,
+      intake: snapshot.intake,
+      meshes: snapshot.meshes,
+      points: snapshot.points,
+      annotations: snapshot.annotations,
+      messages: snapshot.messages,
+      contextMeshId: snapshot.contextMeshId,
+      activeMeshId: snapshot.activeMeshId,
+      workerSessionId: snapshot.workerSessionId,
+    }),
 }));

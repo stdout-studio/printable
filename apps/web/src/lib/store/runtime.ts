@@ -38,6 +38,9 @@ interface RuntimeState {
 
   setMeshGeometry: (meshId: string, geometry: THREE.BufferGeometry) => void;
   removeMeshGeometry: (meshId: string) => void;
+  /** Drop ALL cached geometry + bytes — used when switching projects so the
+   *  outgoing project's meshes don't bleed into the incoming one. */
+  resetMeshes: () => void;
   getMeshGeometry: (meshId: string) => THREE.BufferGeometry | undefined;
   setMeshBytes: (meshId: string, base64: string) => void;
   getMeshBytes: (meshId: string) => string | undefined;
@@ -85,6 +88,7 @@ export const useRuntimeStore = create<RuntimeState>((set, get) => ({
       next.delete(id);
       return { meshGeometries: next };
     }),
+  resetMeshes: () => set({ meshGeometries: new Map(), meshBytes: new Map() }),
   getMeshGeometry: (id) => get().meshGeometries.get(id),
 
   setMeshBytes: (id, b64) =>

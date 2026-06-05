@@ -1,14 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useSessionStore } from '@/lib/store/session';
+import { useProjectsStore } from '@/lib/store/projects';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { Viewer } from '@/components/viewer/Viewer';
 import { IntakeWizard } from '@/components/intake/IntakeWizard';
 
 export function Workspace() {
-  // Session store no longer persists, so we don't need a hydration gate.
   const intake = useSessionStore((s) => s.intake);
   const showWizard = intake === null;
+
+  // Wrap the initial live session as "Project 1" so the switcher has a project.
+  useEffect(() => {
+    useProjectsStore.getState().init();
+  }, []);
 
   return (
     <main className="h-screen w-screen flex overflow-hidden">

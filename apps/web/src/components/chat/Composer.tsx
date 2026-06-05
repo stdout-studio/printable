@@ -205,6 +205,9 @@ export function Composer() {
               const bytes = base64ToArrayBuffer(event.stlBase64);
               const loaded = loadMeshFromStlBytes(bytes);
               useRuntimeStore.getState().setMeshGeometry(event.webMeshId, loaded.geometry);
+              // Keep cached bytes current so project snapshots + worker re-imports
+              // reflect the agent's edits, not the original upload.
+              useRuntimeStore.getState().setMeshBytes(event.webMeshId, event.stlBase64);
             } catch (e) {
               const m = e instanceof Error ? e.message : String(e);
               appendTextToMessage(assistantMsg.id, `\n\n[mesh refresh failed: ${m}]`);
