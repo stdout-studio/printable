@@ -139,7 +139,7 @@ export function DrawingCanvasStep({ onComplete }: Props) {
         <button
           onClick={() => void done()}
           disabled={busy}
-          className="flex-1 rounded-xl bg-[var(--color-accent)] text-white py-2.5 hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
+          className="flex-1 rounded-xl bg-[var(--flux)] text-[#0b0c0e] font-medium py-2.5 hover:bg-[var(--flux-deep)] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {busy && <Loader2 size={16} className="animate-spin" />}
           {busy ? 'Setting up…' : hasContent ? 'Continue with this sketch' : 'Skip and describe in chat'}

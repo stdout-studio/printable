@@ -1,34 +1,73 @@
 @import 'tailwindcss';
 
-:root {
-  --color-bg: oklch(0.99 0.005 240);
-  --color-bg-elev: oklch(1 0 0);
-  --color-fg: oklch(0.2 0.02 240);
-  --color-fg-dim: oklch(0.45 0.02 240);
-  --color-border: oklch(0.92 0.01 240);
-  --color-accent: oklch(0.62 0.18 250);
-  --color-accent-soft: oklch(0.62 0.18 250 / 0.12);
-  --color-point: oklch(0.65 0.2 260);
-}
+/* Class-based dark mode so the app is dark-first regardless of OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: oklch(0.17 0.01 240);
-    --color-bg-elev: oklch(0.21 0.01 240);
-    --color-fg: oklch(0.94 0.005 240);
-    --color-fg-dim: oklch(0.65 0.01 240);
-    --color-border: oklch(0.28 0.01 240);
-    --color-accent-soft: oklch(0.62 0.18 250 / 0.18);
-  }
+/*
+ * "Machined light" — Kerf's design system (see context/design-brief.md).
+ * A warm-graphite dark optical bench: elevation = hairlines + a 3-step bg ramp
+ * (never drop shadows), one aqua-mint Flux accent for machine/measurement marks,
+ * violet for human-authored marks, frost glass ONLY over the 3D canvas.
+ */
+:root {
+  /* Background ramp */
+  --bg-void: #0b0c0e; /* deepest; also the three.js scene clear color */
+  --bg-surface: #131519; /* chat rail, panels */
+  --bg-elev: #1a1d22; /* cards, op-step rows, composer, menus */
+  --bg-glass: rgba(20, 23, 28, 0.62); /* HUD/toolbars over the canvas (+ backdrop-blur) */
+
+  /* Hairlines — elevation is these + the bg ramp, not shadows */
+  --line: #262a30;
+  --line-strong: #363b43;
+  --grid-minor: #1e2127;
+
+  /* Text — warm bone, never pure white */
+  --fg: #eceae3;
+  --fg-muted: #9ca0a6;
+  --fg-dim: #62666d;
+
+  /* Flux — THE accent (aqua-mint machinist green): machine + measurement marks */
+  --flux: #36e6b0;
+  --flux-deep: #16b889;
+  --flux-glow: rgba(54, 230, 176, 0.45);
+
+  /* Violet — human-authored marks (user drawings + user chat edge) */
+  --violet: #9a8cff;
+
+  /* Status — shown as small glowing dots, not fills */
+  --status-ok: #58d08b;
+  --status-warn: #f2b23c;
+  --status-danger: #ff5c57;
+  --status-process: #34c6e0; /* the only animated status (cyan in-flight) */
+
+  /* ---- Back-compat aliases: existing components reference --color-* ---- */
+  --color-bg: var(--bg-void);
+  --color-bg-elev: var(--bg-surface);
+  --color-elev: var(--bg-elev);
+  --color-fg: var(--fg);
+  --color-fg-dim: var(--fg-muted);
+  --color-fg-faint: var(--fg-dim);
+  --color-border: var(--line);
+  --color-border-strong: var(--line-strong);
+  --color-accent: var(--flux);
+  --color-accent-deep: var(--flux-deep);
+  --color-accent-soft: rgba(54, 230, 176, 0.12);
+  --color-point: var(--flux);
+
+  /* Font stacks (the variables are supplied by next/font in layout.tsx) */
+  --font-sans-stack: var(--font-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-mono-stack: var(--font-mono), ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo,
+    monospace;
 }
 
 html,
 body {
   height: 100%;
-  background: var(--color-bg);
-  color: var(--color-fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    sans-serif;
+  background: var(--bg-void);
+  color: var(--fg);
+  font-family: var(--font-sans-stack);
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -37,8 +76,39 @@ body {
   box-sizing: border-box;
 }
 
+::selection {
+  background: rgba(54, 230, 176, 0.22);
+  color: var(--fg);
+}
+
 canvas {
   display: block;
+}
+
+/* Mono = the instrument voice: dimensions, units, coords, ids, op names. */
+.mono {
+  font-family: var(--font-mono-stack);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The ONE allowed looping animation: the cyan in-flight "process" heartbeat. */
+@keyframes kerf-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.kerf-pulse {
+  animation: kerf-pulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kerf-pulse {
+    animation: none;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -46,9 +116,9 @@ canvas {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--line-strong);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-fg-dim);
+  background: var(--fg-dim);
 }

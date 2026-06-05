@@ -12,10 +12,12 @@ export function Message({ message }: { message: ChatMessage }) {
     <div className={clsx('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={clsx(
-          'max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed space-y-2',
+          'max-w-[90%] text-sm leading-relaxed space-y-2',
+          // User = a steel bubble with a violet edge (human voice); assistant =
+          // no bubble, prose sits directly on the rail ("speaks into" the panel).
           isUser
-            ? 'bg-[var(--color-accent)] text-white'
-            : 'bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)]',
+            ? 'rounded-2xl rounded-tr-md border-l-2 border-[var(--violet)] bg-[var(--bg-elev)] px-3 py-2 text-[var(--fg)]'
+            : 'px-0.5 text-[var(--fg)]',
         )}
       >
         {message.content.map((c, i) => {
@@ -24,12 +26,7 @@ export function Message({ message }: { message: ChatMessage }) {
             return (
               <span
                 key={i}
-                className={clsx(
-                  'inline-block mx-0.5 px-1.5 py-0.5 rounded font-mono text-[11px]',
-                  isUser
-                    ? 'bg-white/20'
-                    : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
-                )}
+                className="inline-block mx-0.5 px-1.5 py-0.5 rounded mono text-[11px] bg-[var(--color-accent-soft)] text-[var(--flux)]"
               >
                 @{c.label}
               </span>
@@ -45,12 +42,7 @@ export function Message({ message }: { message: ChatMessage }) {
                   alt={`sketch @${ann.label}`}
                   className="rounded-lg border border-[var(--color-border)] max-w-full"
                 />
-                <span
-                  className={clsx(
-                    'inline-block mt-1 px-1.5 py-0.5 rounded font-mono text-[11px]',
-                    isUser ? 'bg-white/20' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
-                  )}
-                >
+                <span className="inline-block mt-1 px-1.5 py-0.5 rounded mono text-[11px] bg-[color-mix(in_oklab,var(--violet)_18%,transparent)] text-[var(--violet)]">
                   @{ann.label}
                 </span>
               </div>

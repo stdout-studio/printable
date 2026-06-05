@@ -181,14 +181,14 @@ export function Scene() {
             <mesh position={pt.worldPosition}>
               <sphereGeometry args={[sphereR, 20, 20]} />
               <meshStandardMaterial
-                color="#6366f1"
-                emissive="#6366f1"
-                emissiveIntensity={0.4}
+                color="#36e6b0"
+                emissive="#36e6b0"
+                emissiveIntensity={0.6}
               />
             </mesh>
             <group position={labelPos}>
               <Html distanceFactor={8} center zIndexRange={[20, 0]}>
-                <div className="px-1.5 py-0.5 rounded text-[11px] font-mono bg-indigo-600 text-white shadow-md select-none pointer-events-none whitespace-nowrap">
+                <div className="px-1.5 py-0.5 rounded text-[11px] mono bg-[var(--bg-glass)] backdrop-blur-md border border-[var(--line)] text-[var(--flux)] shadow-[0_0_10px_var(--flux-glow)] select-none pointer-events-none whitespace-nowrap">
                   @{pt.label}
                 </div>
               </Html>

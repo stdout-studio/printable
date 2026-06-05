@@ -128,7 +128,7 @@ export function PictureUploadStep({ onComplete }: Props) {
                 URL.revokeObjectURL(imagePreview);
                 setImagePreview(null);
               }}
-              className="absolute -top-2 -right-2 p-1 rounded-full bg-white border border-[var(--color-border)]"
+              className="absolute -top-2 -right-2 p-1 rounded-full bg-[var(--bg-elev)] border border-[var(--line)] text-[var(--fg)]"
               aria-label="Remove image"
             >
               <X size={12} />
@@ -145,14 +145,14 @@ export function PictureUploadStep({ onComplete }: Props) {
       <button
         onClick={() => void search()}
         disabled={(!query.trim() && !imagePreview) || searching}
-        className="mt-4 w-full rounded-xl bg-[var(--color-accent)] text-white py-2.5 disabled:opacity-40 flex items-center justify-center gap-2"
+        className="mt-4 w-full rounded-xl bg-[var(--flux)] text-[#0b0c0e] font-medium py-2.5 hover:bg-[var(--flux-deep)] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
       >
         {searching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
         Find a starting point
       </button>
 
       {error && (
-        <p className="mt-3 text-sm text-red-600 break-all">
+        <p className="mt-3 text-sm text-[var(--status-danger)] break-all">
           {error}
           {error.includes('404') || error.includes('index')
             ? ' — the retrieval index hasn\'t been built yet. Run `pnpm --filter @printable/indexer all`, or skip below.'
@@ -170,7 +170,7 @@ export function PictureUploadStep({ onComplete }: Props) {
               onClick={() => void pickResult(r)}
             >
               {loadingId === r.modelId && (
-                <div className="absolute inset-0 z-10 grid place-items-center rounded-xl bg-white/70 backdrop-blur-sm">
+                <div className="absolute inset-0 z-10 grid place-items-center rounded-xl bg-[color-mix(in_oklab,var(--bg-void)_72%,transparent)] backdrop-blur-sm">
                   <Loader2 size={20} className="animate-spin text-[var(--color-accent)]" />
                 </div>
               )}

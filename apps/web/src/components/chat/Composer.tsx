@@ -279,13 +279,13 @@ export function Composer() {
           placeholder="Describe what to design. Reference points with @p1, sketches with @d1…"
           rows={1}
           disabled={sending}
-          className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 disabled:opacity-60"
+          className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-elev)] px-3 py-2 text-sm text-[var(--fg)] placeholder:text-[var(--fg-dim)] focus:outline-none focus:border-[var(--flux)] disabled:opacity-60"
         />
         <button
           onClick={() => void submit()}
           disabled={!value.trim() || sending}
           aria-label="Send"
-          className="rounded-xl bg-[var(--color-accent)] text-white p-2.5 disabled:opacity-30 hover:opacity-90 transition-opacity"
+          className="rounded-xl bg-[var(--flux)] text-[#0b0c0e] p-2.5 disabled:opacity-30 hover:bg-[var(--flux-deep)] transition-colors"
         >
           <Send size={16} />
         </button>
@@ -297,7 +297,7 @@ export function Composer() {
               key={p.id}
               onClick={() => insertToken(`@${p.label}`)}
               disabled={sending}
-              className="px-1.5 py-0.5 rounded font-mono text-[11px] bg-indigo-500/12 text-indigo-700 hover:bg-indigo-500/25 dark:text-indigo-300 disabled:opacity-50"
+              className="px-1.5 py-0.5 rounded mono text-[11px] bg-[var(--color-accent-soft)] text-[var(--flux)] hover:bg-[color-mix(in_oklab,var(--flux)_22%,transparent)] disabled:opacity-50"
             >
               @{p.label}
             </button>
@@ -307,7 +307,7 @@ export function Composer() {
               key={a.id}
               onClick={() => insertToken(`@${a.label}`)}
               disabled={sending}
-              className="px-1.5 py-0.5 rounded font-mono text-[11px] bg-rose-500/12 text-rose-700 hover:bg-rose-500/25 dark:text-rose-300 disabled:opacity-50"
+              className="px-1.5 py-0.5 rounded mono text-[11px] bg-[color-mix(in_oklab,var(--violet)_14%,transparent)] text-[var(--violet)] hover:bg-[color-mix(in_oklab,var(--violet)_24%,transparent)] disabled:opacity-50"
             >
               @{a.label}
             </button>

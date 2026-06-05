@@ -209,7 +209,7 @@ function PickModeView({
           </button>
         ))}
       </div>
-      {error && <p className="mt-3 text-sm text-amber-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-[var(--status-warn)]">{error}</p>}
     </div>
   );
 }

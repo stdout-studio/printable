@@ -24,12 +24,15 @@ export function Viewer() {
         camera={{ position: [90, 70, 90], fov: 45, near: 0.5, far: 5000 }}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
       >
-        <color attach="background" args={['#f5f7fa']} />
+        <color attach="background" args={['#0b0c0e']} />
         <Suspense fallback={null}>
-          <ambientLight intensity={0.55} />
+          <ambientLight intensity={0.32} />
+          {/* Warm key + cool fill + a faint Flux rim, so the part is kissed by
+              its brand color at the silhouette (the only luminous object). */}
           <directionalLight
             position={[120, 200, 120]}
-            intensity={1.0}
+            intensity={1.15}
+            color="#ffe9cc"
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
@@ -39,7 +42,8 @@ export function Viewer() {
             shadow-camera-bottom={-100}
             shadow-camera-far={500}
           />
-          <directionalLight position={[-120, -40, -120]} intensity={0.25} />
+          <directionalLight position={[-120, -40, -120]} intensity={0.4} color="#8fb6ff" />
+          <directionalLight position={[-60, 40, -160]} intensity={0.5} color="#36e6b0" />
 
           <Scene />
           <CameraSync />
@@ -47,7 +51,7 @@ export function Viewer() {
           {/* Grid spans 200 units (200mm) with 1cm cells. Sized for our default
               50mm starter cube — uploads at different scales work too because
               Bounds rescales the view. */}
-          <gridHelper args={[200, 20, '#cbd5e1', '#e2e8f0']} />
+          <gridHelper args={[200, 20, '#363b43', '#1e2127']} />
           <OrbitControls
             makeDefault
             enableDamping

@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRuntimeStore } from '@/lib/store/runtime';
 import { useSessionStore } from '@/lib/store/session';
 
-const STROKE_COLOR = '#dc2626';
+// Violet = human-authored marks (Flux is reserved for machine/measurement).
+const STROKE_COLOR = '#9a8cff';
 const STROKE_WIDTH = 4;
 
 /**
@@ -124,7 +125,7 @@ export function DrawingOverlay() {
 
     const glDataUrl = captureGlSnapshot?.();
     const finish = (bgImg: HTMLImageElement | null) => {
-      ctx.fillStyle = '#f5f7fa';
+      ctx.fillStyle = '#0b0c0e';
       ctx.fillRect(0, 0, composite.width, composite.height);
       if (bgImg) {
         // bgImg dimensions are the GL canvas pixel size; cover-fit into composite
@@ -169,11 +170,11 @@ export function DrawingOverlay() {
         onPointerLeave={onPointerUp}
         className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
       />
-      <div className="absolute top-4 right-4 flex gap-2 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-xl p-1.5 shadow-md">
+      <div className="absolute top-4 right-4 flex gap-2 bg-[var(--bg-glass)] backdrop-blur-md border border-[var(--line)] rounded-xl p-1.5 shadow-md">
         <button
           onClick={popStroke}
           disabled={strokes.length === 0}
-          className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-30"
+          className="p-2 rounded-lg hover:bg-[var(--bg-elev)] disabled:opacity-30"
           title="Undo last stroke"
           aria-label="Undo"
         >
@@ -182,16 +183,16 @@ export function DrawingOverlay() {
         <button
           onClick={clearStrokes}
           disabled={strokes.length === 0}
-          className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-30"
+          className="p-2 rounded-lg hover:bg-[var(--bg-elev)] disabled:opacity-30"
           title="Clear"
           aria-label="Clear"
         >
           <Trash2 size={16} />
         </button>
-        <div className="w-px self-stretch bg-slate-200 mx-1" />
+        <div className="w-px self-stretch bg-[var(--line)] mx-1" />
         <button
           onClick={cancelDrawing}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"
+          className="p-2 rounded-lg hover:bg-[var(--bg-elev)] text-[var(--fg-muted)]"
           title="Cancel"
           aria-label="Cancel"
         >
@@ -200,13 +201,13 @@ export function DrawingOverlay() {
         <button
           onClick={commitAnnotation}
           disabled={strokes.length === 0}
-          className="px-3 py-2 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 disabled:opacity-30 flex items-center gap-1.5 text-sm"
+          className="px-3 py-2 rounded-lg bg-[var(--flux)] text-[#0b0c0e] font-medium hover:bg-[var(--flux-deep)] disabled:opacity-30 flex items-center gap-1.5 text-sm transition-colors"
         >
           <Check size={14} />
           Save sketch
         </button>
       </div>
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs text-slate-600 border border-slate-200 shadow-sm">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-[var(--bg-glass)] backdrop-blur-md rounded-full text-xs text-[var(--fg-muted)] border border-[var(--line)] shadow-sm">
         Draw on the view to annotate. Saved as a sketch tied to this camera angle.
       </div>
     </div>

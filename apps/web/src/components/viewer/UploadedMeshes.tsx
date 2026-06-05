@@ -33,7 +33,7 @@ export function UploadedMeshes({ onDoubleClick }: Props) {
           // the user knows to re-upload.
           return (
             <Html key={mesh.id} center>
-              <div className="px-2 py-1 rounded-md text-xs bg-yellow-100 border border-yellow-300 text-yellow-900 shadow-sm">
+              <div className="px-2 py-1 rounded-md text-xs bg-[var(--bg-elev)] border border-[var(--line-strong)] text-[var(--status-warn)] whitespace-nowrap">
                 Re-upload {mesh.label} ({mesh.filename}) — geometry not in cache
               </div>
             </Html>
@@ -48,12 +48,17 @@ export function UploadedMeshes({ onDoubleClick }: Props) {
             castShadow
             receiveShadow
           >
-            <meshStandardMaterial
-              color={isActive ? '#6366f1' : isContext ? '#9ca3af' : '#94a3b8'}
-              roughness={0.55}
-              metalness={0.08}
+            {/* Brushed-aluminium PBR: the part reads as machined metal. Active
+                part is bright graphite; context (the thing we design around) is
+                darker + translucent so the part stays primary. */}
+            <meshPhysicalMaterial
+              color={isContext ? '#6b7079' : isActive ? '#cfd3d9' : '#c9cdd3'}
+              metalness={0.45}
+              roughness={0.38}
+              clearcoat={0.35}
+              clearcoatRoughness={0.5}
               transparent={isContext}
-              opacity={isContext ? 0.55 : 1}
+              opacity={isContext ? 0.42 : 1}
             />
           </mesh>
         );

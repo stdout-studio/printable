@@ -21,30 +21,33 @@ export function ViewerHUD() {
 
   return (
     <div className="pointer-events-none absolute inset-0">
-      {/* Top-left status */}
+      {/* Top-left: instrument spec-strip — frost glass floating over the canvas */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto">
+        <div className="rounded-lg bg-[var(--bg-glass)] backdrop-blur-md border border-[var(--line)] px-3 py-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--fg-muted)] flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-[1px] bg-[var(--flux)] shadow-[0_0_8px_var(--flux-glow)]" />
+          KERF
+          <span className="text-[var(--fg-dim)]">·</span>
+          MM
+          <span className="text-[var(--fg-dim)]">·</span>
+          <span className="text-[var(--fg)]">{points.length}</span>&nbsp;PTS
+        </div>
         {meshes.length === 0 && (
-          <div className="rounded-xl bg-white/85 backdrop-blur-sm border border-slate-200 px-3 py-2 text-xs text-slate-700 shadow-sm flex items-center gap-2 max-w-xs">
-            <MousePointerClick size={14} className="text-indigo-600" />
+          <div className="rounded-lg bg-[var(--bg-glass)] backdrop-blur-md border border-[var(--line)] px-3 py-2 text-xs text-[var(--fg-muted)] flex items-center gap-2 max-w-xs">
+            <MousePointerClick size={14} className="text-[var(--flux)] flex-shrink-0" />
             <span>
-              Double-click the model to drop a point. Reference it in chat as{' '}
-              <code className="font-mono">@p1</code>.
+              Double-click the model to drop a point — reference it in chat as{' '}
+              <code className="mono text-[var(--flux)]">@p1</code>.
             </span>
-          </div>
-        )}
-        {points.length > 0 && (
-          <div className="rounded-xl bg-white/85 backdrop-blur-sm border border-slate-200 px-3 py-1.5 text-xs text-slate-600 shadow-sm">
-            {points.length} point{points.length === 1 ? '' : 's'} marked
           </div>
         )}
       </div>
 
-      {/* Bottom-left action */}
+      {/* Bottom-left actions */}
       {!drawingActive && (
         <div className="absolute bottom-4 left-4 pointer-events-auto flex gap-2">
           <button
             onClick={() => requestFit()}
-            className="rounded-xl bg-white/90 backdrop-blur-sm border border-slate-200 px-3 py-2 text-sm shadow-sm hover:bg-white flex items-center gap-2"
+            className="rounded-lg bg-[var(--bg-glass)] backdrop-blur-md border border-[var(--line)] px-3 py-2 text-sm text-[var(--fg)] hover:border-[var(--flux)] transition-colors flex items-center gap-2"
             title="Frame mesh"
           >
             <Maximize2 size={14} />
@@ -52,7 +55,7 @@ export function ViewerHUD() {
           </button>
           <button
             onClick={startDraw}
-            className="rounded-xl bg-white/90 backdrop-blur-sm border border-slate-200 px-3 py-2 text-sm shadow-sm hover:bg-white flex items-center gap-2"
+            className="rounded-lg bg-[var(--bg-glass)] backdrop-blur-md border border-[var(--line)] px-3 py-2 text-sm text-[var(--fg)] hover:border-[var(--flux)] transition-colors flex items-center gap-2"
           >
             <Pencil size={14} />
             Draw on this view

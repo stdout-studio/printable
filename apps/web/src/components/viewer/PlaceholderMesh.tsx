@@ -12,7 +12,13 @@ export function PlaceholderMesh({ onDoubleClick }: Props) {
   return (
     <mesh onDoubleClick={onDoubleClick} castShadow receiveShadow position={[0, 15, 0]}>
       <torusKnotGeometry args={[18, 6.5, 220, 32]} />
-      <meshStandardMaterial color="#94a3b8" roughness={0.55} metalness={0.08} />
+      <meshPhysicalMaterial
+        color="#c9cdd3"
+        metalness={0.45}
+        roughness={0.38}
+        clearcoat={0.35}
+        clearcoatRoughness={0.5}
+      />
     </mesh>
   );
 }

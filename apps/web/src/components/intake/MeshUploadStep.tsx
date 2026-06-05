@@ -144,7 +144,7 @@ export function MeshUploadStep({ source, role, title, hint, onComplete }: Props)
         <p className="text-xs text-[var(--color-fg-dim)] mt-1">.stl, .obj</p>
       </label>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-[var(--status-danger)]">{error}</p>}
     </div>
   );
 }
