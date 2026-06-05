@@ -1,6 +1,7 @@
 'use client';
 
-import { Maximize2, MousePointerClick, Pencil } from 'lucide-react';
+import { Download, Maximize2, MousePointerClick, Pencil } from 'lucide-react';
+import { base64ToArrayBuffer } from '@/lib/mesh/loaders';
 import { useRuntimeStore } from '@/lib/store/runtime';
 import { useSessionStore } from '@/lib/store/session';
 
@@ -17,6 +18,28 @@ export function ViewerHUD() {
     const cs = captureCameraState?.();
     if (!cs) return;
     startDrawing(cs);
+  }
+
+  // Download the active part's current STL. The cached bytes are kept in sync on
+  // every agent edit, so this is the latest geometry — no worker round-trip.
+  function exportStl() {
+    const session = useSessionStore.getState();
+    const id = session.activeMeshId ?? session.meshes[0]?.id;
+    if (!id) return;
+    const b64 = useRuntimeStore.getState().meshBytes.get(id);
+    if (!b64) return;
+    const mesh = session.meshes.find((m) => m.id === id);
+    const safe =
+      (mesh?.label ?? 'part').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '') || 'part';
+    const blob = new Blob([base64ToArrayBuffer(b64)], { type: 'model/stl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safe}.stl`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -60,6 +83,16 @@ export function ViewerHUD() {
             <Pencil size={14} />
             Draw on this view
           </button>
+          {meshes.length > 0 && (
+            <button
+              onClick={exportStl}
+              title="Download the current part as STL"
+              className="rounded-lg bg-[var(--flux)] text-[#0b0c0e] font-medium px-3 py-2 text-sm hover:bg-[var(--flux-deep)] transition-colors flex items-center gap-2"
+            >
+              <Download size={14} />
+              Export STL
+            </button>
+          )}
         </div>
       )}
     </div>
