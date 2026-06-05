@@ -343,33 +343,59 @@ def _normal_to_quat(normal):
     return z.rotation_difference(n)
 
 
+def _resolve_point(ctx, point_id, position, normal, *, use_normal):
+    """Resolve a (position, normal, explicit) triple from EITHER a clicked
+    point id OR an explicit world ``position`` (+ optional ``normal``).
+
+    ``explicit`` is True when coordinates were passed directly — in that mode
+    ``position`` is the exact center of the feature (no surface sink), matching
+    how ``create_primitive`` treats ``location``. In point mode the position is
+    on the surface, so the caller sinks the cutter into the body so the boolean
+    overlaps. The model is given every point's world position + normal in its
+    context snapshot, so it can drive either mode without scripting.
+    """
+    from mathutils import Vector  # type: ignore[import-not-found]
+
+    if position is not None:
+        pos = Vector(position)
+        nrm = Vector(normal) if (use_normal and normal is not None) else Vector((0.0, 0.0, 1.0))
+        return pos, nrm, True
+    if point_id is not None:
+        pt = ctx.points.get(point_id)
+        if not pt:
+            raise KeyError(f"unknown point_id: {point_id}")
+        pos = Vector(pt["world_position"])
+        nrm = Vector(pt["surface_normal"]) if use_normal else Vector((0.0, 0.0, 1.0))
+        return pos, nrm, False
+    raise ValueError("add_*_at_point needs either pointId or position")
+
+
 def add_cylinder_at_point(
     ctx: SessionCtx,
     target_mesh_id: str,
-    point_id: str,
+    point_id: str | None = None,
     *,
     radius: float,
     height: float,
+    position=None,
+    normal=None,
     along_normal: bool = True,
     operation: str = "cut",
     fit: str = "press",
 ) -> dict[str, Any]:
-    from mathutils import Vector  # type: ignore[import-not-found]
+    pos, nrm, explicit = _resolve_point(
+        ctx, point_id, position, normal, use_normal=along_normal
+    )
+    quat = _normal_to_quat(nrm) if along_normal else None
 
-    pt = ctx.points.get(point_id)
-    if not pt:
-        raise KeyError(f"unknown point_id: {point_id}")
-    pos = Vector(pt["world_position"])
-    normal = Vector(pt["surface_normal"]) if along_normal else Vector((0, 0, 1))
-    quat = _normal_to_quat(normal) if along_normal else None
-
-    # Place the cylinder so its center sits ON the surface, not embedded
-    # — for a 'cut', center it half-into the body so it actually pierces.
-    if operation in ("cut", "emboss"):
-        # Sink the cylinder half its height into the body so geometry overlaps.
-        center = pos - normal.normalized() * (height * 0.25)
+    # Coordinate mode: position IS the center. Point mode: the point sits on the
+    # surface, so sink the cylinder half-in (cut/emboss) so geometry overlaps.
+    if explicit:
+        center = pos
+    elif operation in ("cut", "emboss"):
+        center = pos - nrm.normalized() * (height * 0.25)
     else:
-        center = pos + normal.normalized() * (height * 0.5)
+        center = pos + nrm.normalized() * (height * 0.5)
 
     cyl_id = f"cyl_{len(ctx.object_by_id)}"
     cyl = _make_cylinder(cyl_id, radius=radius, height=height, location=center, rotation_quat=quat)
@@ -398,25 +424,39 @@ def add_cylinder_at_point(
 def add_box_at_point(
     ctx: SessionCtx,
     target_mesh_id: str,
-    point_id: str,
+    point_id: str | None = None,
     *,
     size,
+    position=None,
+    normal=None,
     align_to_normal: bool = True,
+    rotation_euler_degrees=None,
     operation: str = "cut",
 ) -> dict[str, Any]:
-    from mathutils import Vector  # type: ignore[import-not-found]
+    import math
 
-    pt = ctx.points.get(point_id)
-    if not pt:
-        raise KeyError(f"unknown point_id: {point_id}")
-    pos = Vector(pt["world_position"])
-    normal = Vector(pt["surface_normal"]) if align_to_normal else Vector((0, 0, 1))
-    quat = _normal_to_quat(normal) if align_to_normal else None
-    center = pos
-    if operation in ("cut", "emboss"):
-        center = pos - normal.normalized() * (size[2] * 0.25)
+    from mathutils import Euler  # type: ignore[import-not-found]
+
+    pos, nrm, explicit = _resolve_point(
+        ctx, point_id, position, normal, use_normal=align_to_normal
+    )
+    # Explicit rotation fully specifies orientation (e.g. a rotated slot) and
+    # wins over normal-alignment.
+    if rotation_euler_degrees is not None:
+        quat = Euler(
+            [math.radians(a) for a in rotation_euler_degrees], "XYZ"
+        ).to_quaternion()
+    elif align_to_normal:
+        quat = _normal_to_quat(nrm)
     else:
-        center = pos + normal.normalized() * (size[2] * 0.5)
+        quat = None
+
+    if explicit:
+        center = pos
+    elif operation in ("cut", "emboss"):
+        center = pos - nrm.normalized() * (size[2] * 0.25)
+    else:
+        center = pos + nrm.normalized() * (size[2] * 0.5)
 
     box_id = f"box_{len(ctx.object_by_id)}"
     box = _make_box(box_id, size=size, location=center, rotation_quat=quat)

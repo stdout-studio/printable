@@ -81,15 +81,17 @@ export const TOOLS: Anthropic.Tool[] = [
   {
     name: 'add_cylinder_at_point',
     description:
-      'Drill a hole, place a peg, or place a translucent placeholder cylinder at a clicked point. `operation: "cut"` removes material (hole); `"emboss"` adds material (peg); `"placeholder"` previews the location with a translucent cylinder. The cylinder is oriented along the point\'s surface normal when `alongNormal: true`. Use this for "drill a 5mm hole through @p1" style requests.',
+      'Drill a hole, place a peg, or place a translucent placeholder cylinder — in ONE call. Placement is either a clicked point (pointId) OR an explicit world `position` you compute from the coordinates in the snapshot. `operation: "cut"` removes material (hole); `"emboss"` adds material (peg); `"placeholder"` previews with a translucent cylinder. Oriented along the surface normal (pointId) or your `normal` when `alongNormal: true`. This is the primary drilling tool — for six holes, call it six times; do NOT write a script.',
     input_schema: {
       type: 'object',
       properties: {
         meshId: { type: 'string', description: 'The body being cut into or extruded from.' },
-        pointId: { type: 'string', description: 'Clicked point id (e.g. "pt_abc"). The user-visible @pN label and this id are stored on the same PointToken — use the id, not the label.' },
+        pointId: { type: 'string', description: 'Clicked point id (e.g. "pt_abc"). Use this OR position. The @pN label and this id are on the same PointToken — use the id, not the label.' },
+        position: { ...VEC3, description: 'Explicit world position [x,y,z] in mm = the CENTER of the cylinder. Use instead of pointId to place at any coordinate you compute (e.g. one per hole in a pattern).' },
+        normal: { ...VEC3, description: 'Cylinder axis direction in world space, used with position. Defaults to +Z.' },
         radius: { ...MM_NUMBER, description: 'Cylinder radius in mm (half of diameter).' },
         height: { ...MM_NUMBER, description: 'Depth in mm.' },
-        alongNormal: { type: 'boolean', description: 'Default true — cylinder axis = surface normal.' },
+        alongNormal: { type: 'boolean', description: 'Default true — cylinder axis = surface normal (pointId) or the given normal.' },
         operation: {
           type: 'string',
           enum: ['cut', 'emboss', 'placeholder'],
@@ -101,22 +103,26 @@ export const TOOLS: Anthropic.Tool[] = [
           description: 'FDM tolerance preset. press = no oversize (snug grip). clearance = +0.15mm/side (slip fit). free = +0.3mm/side (loose).',
         },
       },
-      required: ['meshId', 'pointId', 'radius', 'height'],
+      required: ['meshId', 'radius', 'height'],
     },
   },
   {
     name: 'add_box_at_point',
-    description: 'Place a rectangular pocket (cut) or pad (emboss) at a clicked point.',
+    description:
+      'Place a rectangular pocket/slot/cutout (cut) or pad (emboss) — in ONE call. Placement is either a clicked point (pointId) OR an explicit world `position` (the box CENTER) you compute from the corner coordinates in the snapshot. For a rectangular through-cut from 4 clicked corners: compute the center, the [width, depth, height] that spans them (height = clear through the body), and the orientation, then call this ONCE. Pass `rotationEulerDegrees` for a rotated/angled cutout. Use this instead of raw_bpy for any box-shaped feature.',
     input_schema: {
       type: 'object',
       properties: {
         meshId: { type: 'string' },
-        pointId: { type: 'string' },
-        size: { ...VEC3, description: '[width, depth, height] in mm.' },
+        pointId: { type: 'string', description: 'Clicked point id. Use this OR position.' },
+        position: { ...VEC3, description: 'Explicit world position [x,y,z] in mm = the CENTER of the box. Compute this from the corner coordinates for a multi-point cutout.' },
+        normal: { ...VEC3, description: 'Surface normal in world space, used with position when alignToNormal. Defaults to +Z.' },
+        size: { ...VEC3, description: '[width, depth, height] in mm. For a through-cut make height larger than the body so it pierces both faces.' },
         alignToNormal: { type: 'boolean' },
+        rotationEulerDegrees: { ...VEC3, description: 'Explicit XYZ rotation in degrees. Fully specifies orientation (overrides normal alignment) — use for rotated slots / angled pockets.' },
         operation: { type: 'string', enum: ['cut', 'emboss', 'placeholder'] },
       },
-      required: ['meshId', 'pointId', 'size'],
+      required: ['meshId', 'size'],
     },
   },
   {

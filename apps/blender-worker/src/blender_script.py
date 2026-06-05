@@ -196,9 +196,11 @@ def h_apply_operation(ctx, params):
         return ops.add_cylinder_at_point(
             ctx,
             mesh_id,
-            op["point_id"],
+            op.get("point_id"),
             radius=op["radius"],
             height=op["height"],
+            position=op.get("position"),
+            normal=op.get("normal"),
             along_normal=op.get("along_normal", True),
             operation=op.get("operation", "cut"),
             fit=op.get("fit", "press"),
@@ -207,9 +209,12 @@ def h_apply_operation(ctx, params):
         return ops.add_box_at_point(
             ctx,
             mesh_id,
-            op["point_id"],
+            op.get("point_id"),
             size=op["size"],
+            position=op.get("position"),
+            normal=op.get("normal"),
             align_to_normal=op.get("align_to_normal", True),
+            rotation_euler_degrees=op.get("rotation_euler_degrees"),
             operation=op.get("operation", "cut"),
         )
     if op_type == "fillet_edges":

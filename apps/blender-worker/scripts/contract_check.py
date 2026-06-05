@@ -82,6 +82,10 @@ must_reject(
 OPS = [
     {"type": "boolean_diff", "meshId": "mesh_0", "cutterMeshId": "mesh_1", "solver": "EXACT", "useSelf": True, "useHoleTolerant": True, "fdmToleranceMm": 0.15, "keepCutter": False},
     {"type": "add_cylinder_at_point", "meshId": "mesh_0", "pointId": "pt_a", "radius": 2.5, "height": 10, "alongNormal": True, "operation": "cut", "fit": "clearance"},
+    # Coordinate-mode placement (no pointId) — the granular Blender-MCP-style path.
+    {"type": "add_cylinder_at_point", "meshId": "mesh_0", "position": [1, 2, 3], "normal": [0, 0, 1], "radius": 2.5, "height": 10, "operation": "cut"},
+    {"type": "add_box_at_point", "meshId": "mesh_0", "pointId": "pt_a", "size": [4, 5, 6], "operation": "cut"},
+    {"type": "add_box_at_point", "meshId": "mesh_0", "position": [1, 2, 3], "size": [4, 5, 6], "rotationEulerDegrees": [0, 0, 45], "operation": "cut"},
     {"type": "transform_mesh", "meshId": "mesh_0", "translate": [1, 2, 3], "rotateEulerDegrees": [0, 0, 90], "scale": [1, 1, 1]},
     {"type": "create_primitive", "primitive": "cylinder", "rotationEulerDegrees": [0, 0, 0], "minorRadius": 1.0},
     {"type": "join_objects", "meshIds": ["mesh_0", "mesh_1"]},

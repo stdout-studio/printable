@@ -111,7 +111,13 @@ class BooleanUnion(_OpBase):
 
 class AddCylinderAtPoint(_OpBase):
     type: Literal["add_cylinder_at_point"] = "add_cylinder_at_point"
-    point_id: str = Field(alias="pointId")
+    # Placement is EITHER a clicked point (point_id) OR an explicit world
+    # position (+ optional normal). Coordinate mode lets the agent place a
+    # feature anywhere it can compute — e.g. one call per hole for six holes —
+    # without dropping to raw_bpy. In coordinate mode `position` is the center.
+    point_id: str | None = Field(default=None, alias="pointId")
+    position: Vec3 | None = None
+    normal: Vec3 | None = None
     radius: float
     height: float
     along_normal: bool = Field(default=True, alias="alongNormal")
@@ -122,9 +128,15 @@ class AddCylinderAtPoint(_OpBase):
 
 class AddBoxAtPoint(_OpBase):
     type: Literal["add_box_at_point"] = "add_box_at_point"
-    point_id: str = Field(alias="pointId")
+    # Same point-or-coordinate placement as AddCylinderAtPoint. For an oriented
+    # cutout (rotated slot, angled pocket) pass rotation_euler_degrees — it fully
+    # specifies orientation and overrides the normal-alignment.
+    point_id: str | None = Field(default=None, alias="pointId")
+    position: Vec3 | None = None
+    normal: Vec3 | None = None
     size: Vec3
     align_to_normal: bool = Field(default=True, alias="alignToNormal")
+    rotation_euler_degrees: Vec3 | None = Field(default=None, alias="rotationEulerDegrees")
     operation: Literal["cut", "emboss", "placeholder"] = "cut"
 
 
