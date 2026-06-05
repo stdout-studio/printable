@@ -34,6 +34,31 @@ function isMocked(result: unknown): boolean {
   return r.mocked === true || r.session_expired === true || r.worker_error === true;
 }
 
+/** A tool call may return HTTP 200 with an in-band failure field
+ *  (script_error from raw_bpy, error from exec_bpy, mocked-fallback notes,
+ *  worker_error). Return a short string when one is present so the agent
+ *  loop can log it; otherwise undefined. */
+function extractInbandError(result: unknown): string | undefined {
+  if (typeof result !== 'object' || result === null) return undefined;
+  const r = result as Record<string, unknown>;
+  if (typeof r.script_error === 'string' && r.script_error.length > 0) {
+    return `script_error: ${r.script_error}`;
+  }
+  if (typeof r.error === 'string' && r.error.length > 0) {
+    return `error: ${r.error}`;
+  }
+  if (r.mocked === true) {
+    const reason = typeof r.reason === 'string' ? r.reason : 'no reason given';
+    return `mocked: ${reason}`;
+  }
+  if (r.session_expired === true) return 'session_expired';
+  if (r.worker_error === true) {
+    const msg = typeof r.message === 'string' ? r.message : 'unknown';
+    return `worker_error: ${msg}`;
+  }
+  return undefined;
+}
+
 function extractStlBase64(result: unknown): string | undefined {
   if (typeof result !== 'object' || result === null) return undefined;
   const r = result as Record<string, unknown>;
@@ -167,6 +192,18 @@ export class PrintableAgent {
         };
         try {
           const result = await this.dispatch(toolUse.name, toolUse.input);
+          // Worker calls can return HTTP 200 with an in-band error field
+          // (script_error, mocked, error). The agent loop keeps going either
+          // way, but if we don't log these the dev console looks fine while
+          // the model is actually paraphrasing "my script crashed" as
+          // "tools not reachable". Surface it in the server log.
+          const inband = extractInbandError(result);
+          if (inband) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[agent] ${toolUse.name} returned in-band error: ${inband}`,
+            );
+          }
           yield {
             type: 'tool_result',
             toolName: toolUse.name,
