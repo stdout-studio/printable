@@ -8,6 +8,12 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // Hosted-mode providers read these at call time; give the tests a base URL
+    // (the fetch is mocked, so the value just needs to be non-empty).
+    env: {
+      HOSTED_AUTH_URL: 'https://auth.test',
+      HOSTED_BILLING_URL: 'https://billing.test',
+    },
   },
   resolve: {
     alias: {

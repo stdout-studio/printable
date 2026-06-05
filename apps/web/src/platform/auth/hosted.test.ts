@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { studioAuth } from './studio';
+import { hostedAuth } from './hosted';
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -17,10 +17,10 @@ function headersWith(cookie?: string): Headers {
   return h;
 }
 
-describe('studioAuth.getSession', () => {
+describe('hostedAuth.getSession', () => {
   it('returns null without a cookie (no platform call)', async () => {
     const m = stubFetch(() => ({ ok: true, json: async () => ({}) }));
-    expect(await studioAuth.getSession(headersWith())).toBeNull();
+    expect(await hostedAuth.getSession(headersWith())).toBeNull();
     expect(m).not.toHaveBeenCalled();
   });
 
@@ -32,7 +32,7 @@ describe('studioAuth.getSession', () => {
         expiresAt: '2030-01-01T00:00:00Z',
       }),
     }));
-    const s = await studioAuth.getSession(headersWith('kerf_session=abc'));
+    const s = await hostedAuth.getSession(headersWith('kerf_session=abc'));
     expect(s?.user).toMatchObject({ id: 'u1', email: 'a@b.com', name: 'A' });
     expect(s?.expiresAt).toBe('2030-01-01T00:00:00Z');
     const init = m.mock.calls[0]![1] as { headers: { cookie: string } };
@@ -41,11 +41,11 @@ describe('studioAuth.getSession', () => {
 
   it('returns null on non-ok responses', async () => {
     stubFetch(() => ({ ok: false, json: async () => ({}) }));
-    expect(await studioAuth.getSession(headersWith('x=1'))).toBeNull();
+    expect(await hostedAuth.getSession(headersWith('x=1'))).toBeNull();
   });
 
   it('returns null on a malformed user (missing email/expiry)', async () => {
     stubFetch(() => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }));
-    expect(await studioAuth.getSession(headersWith('x=1'))).toBeNull();
+    expect(await hostedAuth.getSession(headersWith('x=1'))).toBeNull();
   });
 });

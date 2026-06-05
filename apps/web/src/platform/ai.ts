@@ -1,20 +1,20 @@
 /**
  * AI provider — wraps Anthropic SDK. In local mode the API key comes from
- * the user's env (BYO key). In studio mode it comes from the platform's
+ * the user's env (BYO key). In hosted mode it comes from the platform's
  * shared key with per-app metadata for cost tagging.
  *
  * Returns the Anthropic client + a metadata object every chat call should
- * include in its `metadata.user_id` (studio) or just pass through (local).
+ * include in its `metadata.user_id` (hosted) or just pass through (local).
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { IS_STUDIO } from './mode';
+import { IS_HOSTED } from './mode';
 import { appConfig } from './app-config';
 
 export interface AIProvider {
   client: Anthropic;
   /** Metadata to include in every Anthropic API call for cost-tracking +
-   *  audit. Optional caller-supplied user_id is appended in studio mode. */
+   *  audit. Optional caller-supplied user_id is appended in hosted mode. */
   metadata(userId?: string): { user_id?: string } | undefined;
 }
 
@@ -35,8 +35,8 @@ function makeLocalProvider(): AIProvider {
   };
 }
 
-function makeStudioProvider(): AIProvider {
-  const apiKey = process.env.STDOUT_ANTHROPIC_KEY ?? process.env.ANTHROPIC_API_KEY;
+function makeHostedProvider(): AIProvider {
+  const apiKey = process.env.HOSTED_ANTHROPIC_KEY ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return {
       client: new Anthropic({ apiKey: 'missing' }),
@@ -52,11 +52,11 @@ function makeStudioProvider(): AIProvider {
   };
 }
 
-export const ai: AIProvider = IS_STUDIO ? makeStudioProvider() : makeLocalProvider();
+export const ai: AIProvider = IS_HOSTED ? makeHostedProvider() : makeLocalProvider();
 
 export function hasAIKey(): boolean {
-  const key = IS_STUDIO
-    ? process.env.STDOUT_ANTHROPIC_KEY ?? process.env.ANTHROPIC_API_KEY
+  const key = IS_HOSTED
+    ? process.env.HOSTED_ANTHROPIC_KEY ?? process.env.ANTHROPIC_API_KEY
     : process.env.ANTHROPIC_API_KEY;
   return Boolean(key && key !== 'missing');
 }

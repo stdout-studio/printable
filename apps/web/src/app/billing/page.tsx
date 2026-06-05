@@ -8,7 +8,7 @@ import Link from 'next/link';
 export const metadata = { title: 'Billing' };
 
 /**
- * Billing page — only meaningful in studio mode. In local mode self-hosters
+ * Billing page — only meaningful in hosted mode. In local mode self-hosters
  * don't pay anyone, so this page just explains that.
  */
 export default async function BillingPage() {

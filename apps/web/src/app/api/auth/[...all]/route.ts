@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 async function handler(req: Request) {
   if (!IS_LOCAL) {
     return new Response(
-      JSON.stringify({ error: 'Studio mode auth not yet implemented.' }),
+      JSON.stringify({ error: 'Hosted mode auth not yet implemented.' }),
       { status: 501, headers: { 'content-type': 'application/json' } },
     );
   }

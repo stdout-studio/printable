@@ -1,13 +1,13 @@
 /**
- * Public surface of the stdout.studio platform — the only entry the app
+ * Public surface of the platform — the only entry the app
  * code should import from.
  *
  * Today this lives inside Printable's apps/web. When a second app ships
  * (and the abstractions have proven themselves), this whole directory
- * extracts into github.com/stdout-studio/platform as a published package.
+ * extracts into a published package.
  */
 
-export { MODE, IS_LOCAL, IS_STUDIO } from './mode';
+export { MODE, IS_LOCAL, IS_HOSTED } from './mode';
 export type { Mode } from './mode';
 
 export { appConfig } from './app-config';

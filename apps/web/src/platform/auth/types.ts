@@ -1,6 +1,6 @@
 /**
  * Auth provider interface. Both local mode (SQLite + email/password) and
- * studio mode (Better-Auth + Google SSO + shared Postgres) implement this.
+ * hosted mode (Better-Auth + Google SSO + shared Postgres) implement this.
  *
  * The interface is intentionally minimal — Better-Auth handles most of
  * the heavy lifting; we only abstract what the app surface needs.

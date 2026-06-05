@@ -1,5 +1,5 @@
 /**
- * Per-app configuration. Every stdout.studio app exports one of these
+ * Per-app configuration. Every app exports one of these
  * via `stdout.config.ts` at its repo root (or under apps/web/src/).
  *
  * The config is consumed by the landing page, legal pages, setup wizard,

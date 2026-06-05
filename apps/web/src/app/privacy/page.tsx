@@ -1,11 +1,11 @@
 import { LegalShell } from '@/platform/legal/LegalShell';
 import { appConfig } from '@/platform/app-config';
-import { IS_LOCAL, IS_STUDIO } from '@/platform/mode';
+import { IS_LOCAL, IS_HOSTED } from '@/platform/mode';
 
 export const metadata = { title: 'Privacy' };
 
 /**
- * Generic privacy notice. Studio-mode operators should review and customize
+ * Generic privacy notice. Hosted-mode operators should review and customize
  * before public launch — the boilerplate covers the common case but
  * lawyer-quality copy depends on the actual data flows of each app.
  */
@@ -39,11 +39,11 @@ export default function PrivacyPage() {
           On this self-hosted instance, prompts and (where relevant) photos
           you upload are sent to Anthropic's Claude API to generate or edit
           the geometry. The operator's API key is used; no data passes
-          through stdout.studio. No analytics or telemetry leaves this box
+          through the hosted backend. No analytics or telemetry leaves this box
           unless the operator has configured it.
         </p>
       )}
-      {IS_STUDIO && (
+      {IS_HOSTED && (
         <p>
           Prompts and uploaded media are sent to Anthropic's Claude API to
           generate or edit geometry. Aggregated usage analytics (no user

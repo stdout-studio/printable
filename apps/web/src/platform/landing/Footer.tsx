@@ -15,7 +15,7 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="text-sm text-[var(--color-fg-dim)] leading-relaxed">
           <div className="font-semibold text-[var(--color-fg)] mb-1">{appConfig.name}</div>
-          <div>A product of stdout.studio.</div>
+          <div>Open source · MIT licensed.</div>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">

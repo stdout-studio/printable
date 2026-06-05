@@ -24,9 +24,9 @@ services:
     environment:
       # Forwarded from the host .env (docker compose auto-loads it).
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      STDOUT_MODE: local
-      STDOUT_DATA_DIR: /app/data
-      STDOUT_ALLOW_SIGNUPS: ${STDOUT_ALLOW_SIGNUPS:-false}
+      KERF_MODE: local
+      KERF_DATA_DIR: /app/data
+      KERF_ALLOW_SIGNUPS: ${KERF_ALLOW_SIGNUPS:-false}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
       BLENDER_WORKER_URL: ${BLENDER_WORKER_URL:-http://blender-worker:8080}
     volumes:

@@ -2,7 +2,7 @@
  * Printable's concrete AppConfig. This is the one place the platform
  * abstractions get pointed at this specific app's identity + copy.
  *
- * Other stdout.studio apps will have their own app-config.ts with the
+ * Other apps will have their own app-config.ts with the
  * same shape but their own values.
  */
 
@@ -14,8 +14,8 @@ export const appConfig: AppConfig = {
   tagline: 'Design 3D-printable parts by pointing, sketching, and chatting.',
   description:
     'Point at it, draw on it, describe it — Kerf turns your intent into a clean, ready-to-print STL. Fit a part to something you own, remix an existing model, or start from scratch: phone mounts, brackets, replacement clips, custom adapters, and whatever else you can describe.',
-  githubUrl: 'https://github.com/stdout-studio/printable',
-  selfHostCommand: 'git clone https://github.com/stdout-studio/printable && cd printable && docker compose up',
+  githubUrl: 'https://github.com/stdout-studio/kerf',
+  selfHostCommand: 'git clone https://github.com/stdout-studio/kerf && cd kerf && docker compose up',
   guestModeEnabled: false,
 
   requiredEnvVars: [

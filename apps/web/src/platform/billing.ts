@@ -1,18 +1,18 @@
 /**
  * Billing provider.
  *
- * - Local mode: a no-op. Self-hosters don't pay stdout.studio anything; every
+ * - Local mode: a no-op. Self-hosters don't pay anything; every
  *   user is effectively "subscribed" (no gating).
- * - Studio mode: ONE Stripe account behind the platform billing service. Rather
+ * - Hosted mode: ONE Stripe account behind the platform billing service. Rather
  *   than pull Stripe/Postgres into this public repo, the app asks the platform
  *   service about the current app's entitlement for a user. Contract:
- *     GET  <STUDIO_BILLING_URL>/api/entitlement?userId=&app=  -> { active }
- *     POST <STUDIO_BILLING_URL>/api/portal { userId, app }     -> { url }
+ *     GET  <HOSTED_BILLING_URL>/api/entitlement?userId=&app=  -> { active }
+ *     POST <HOSTED_BILLING_URL>/api/portal { userId, app }     -> { url }
  *   Entitlements are keyed by (userId, appConfig.slug) so one account serves
  *   every app.
  */
 
-import { IS_STUDIO } from './mode';
+import { IS_HOSTED } from './mode';
 import { appConfig } from './app-config';
 
 export interface BillingProvider {
@@ -34,18 +34,18 @@ const localBilling: BillingProvider = {
   },
 };
 
-const BILLING_URL = process.env.STUDIO_BILLING_URL ?? 'https://billing.stdout.studio';
-const SERVICE_TOKEN = process.env.STUDIO_SERVICE_TOKEN ?? '';
-
 function serviceHeaders(): Record<string, string> {
-  return SERVICE_TOKEN ? { authorization: `Bearer ${SERVICE_TOKEN}` } : {};
+  const token = process.env.HOSTED_SERVICE_TOKEN ?? '';
+  return token ? { authorization: `Bearer ${token}` } : {};
 }
 
-export const studioBilling: BillingProvider = {
+export const hostedBilling: BillingProvider = {
   enabled: true,
   async hasActiveSubscription(userId: string) {
+    const base = process.env.HOSTED_BILLING_URL ?? '';
+    if (!base) return false;
     try {
-      const url = `${BILLING_URL}/api/entitlement?userId=${encodeURIComponent(
+      const url = `${base}/api/entitlement?userId=${encodeURIComponent(
         userId,
       )}&app=${encodeURIComponent(appConfig.slug)}`;
       const res = await fetch(url, { headers: serviceHeaders(), cache: 'no-store' });
@@ -58,8 +58,10 @@ export const studioBilling: BillingProvider = {
     }
   },
   async customerPortalUrl(userId: string) {
+    const base = process.env.HOSTED_BILLING_URL ?? '';
+    if (!base) return null;
     try {
-      const res = await fetch(`${BILLING_URL}/api/portal`, {
+      const res = await fetch(`${base}/api/portal`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...serviceHeaders() },
         body: JSON.stringify({ userId, app: appConfig.slug }),
@@ -74,4 +76,4 @@ export const studioBilling: BillingProvider = {
   },
 };
 
-export const billing: BillingProvider = IS_STUDIO ? studioBilling : localBilling;
+export const billing: BillingProvider = IS_HOSTED ? hostedBilling : localBilling;

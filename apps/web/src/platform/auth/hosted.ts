@@ -1,22 +1,21 @@
 /**
- * Studio-mode auth. The shared identity lives on the platform
- * (auth.stdout.studio, Better-Auth on shared Postgres, cookie scoped to
- * .stdout.studio). Rather than pull Postgres/Better-Auth into this public,
+ * Hosted-mode auth. The shared identity lives on the platform backend (a
+ * Better-Auth service on shared Postgres, with a session cookie scoped to the
+ * parent domain). Rather than pull Postgres/Better-Auth into this public,
  * self-hostable repo, the app validates the session by forwarding the request's
- * cookie to the platform auth service and reading back the user. Keeps self-host
- * free of studio internals; the contract is `GET <STUDIO_AUTH_URL>/api/session`.
+ * cookie to the platform and reading back the user — keeping self-host free of
+ * platform internals. Contract: `GET <HOSTED_AUTH_URL>/api/session`.
  */
 
 import type { AuthProvider, Session } from './types';
 
-const AUTH_URL = process.env.STUDIO_AUTH_URL ?? 'https://auth.stdout.studio';
-
-export const studioAuth: AuthProvider = {
+export const hostedAuth: AuthProvider = {
   async getSession(headers: Headers): Promise<Session | null> {
+    const authUrl = process.env.HOSTED_AUTH_URL ?? '';
     const cookie = headers.get('cookie');
-    if (!cookie) return null;
+    if (!cookie || !authUrl) return null;
     try {
-      const res = await fetch(`${AUTH_URL}/api/session`, {
+      const res = await fetch(`${authUrl}/api/session`, {
         headers: { cookie },
         cache: 'no-store',
       });

@@ -7,7 +7,7 @@
  * The setup wizard creates the first user (the admin). After that, signup
  * is gated by config (default: closed — you self-host, you decide who can
  * log in). To open public signups on a self-hosted instance, set
- * STDOUT_ALLOW_SIGNUPS=true.
+ * KERF_ALLOW_SIGNUPS=true.
  */
 
 import path from 'node:path';
@@ -16,7 +16,7 @@ import Database from 'better-sqlite3';
 import { betterAuth } from 'better-auth';
 import type { AuthProvider, Session, User } from './types';
 
-const DATA_DIR = process.env.STDOUT_DATA_DIR ?? path.resolve(process.cwd(), 'data');
+const DATA_DIR = process.env.KERF_DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const DB_PATH = path.join(DATA_DIR, 'auth.db');
 
 // Ensure data dir exists before sqlite tries to open the file.
@@ -83,7 +83,7 @@ sqlite.exec(`
 `);
 
 export const ALLOW_PUBLIC_SIGNUPS =
-  (process.env.STDOUT_ALLOW_SIGNUPS ?? '').trim().toLowerCase() === 'true';
+  (process.env.KERF_ALLOW_SIGNUPS ?? '').trim().toLowerCase() === 'true';
 
 // Better-Auth itself keeps email/password signup enabled — we need it
 // available for the setup wizard. Whether /signup is publicly reachable

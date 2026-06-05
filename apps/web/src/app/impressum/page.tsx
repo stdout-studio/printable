@@ -8,7 +8,7 @@ export const metadata = { title: 'Impressum' };
  * Impressum — required by §5 DDG (formerly §5 TMG) for any commercially-used
  * site reachable from Germany. On self-hosted instances the operator
  * info is whatever the operator configured in their AppConfig; on the
- * hosted stdout.studio version it carries Operating-UG's data.
+ * hosted version it carries Operating-UG's data.
  */
 export default function ImpressumPage() {
   const { legal } = appConfig;
@@ -62,7 +62,7 @@ export default function ImpressumPage() {
             You are looking at a self-hosted deployment of {appConfig.name}, an
             open-source product. The operator above runs this specific
             instance and is responsible for its content. The underlying
-            software is maintained by stdout.studio and licensed under MIT.
+            software is maintained by the project and licensed under MIT.
           </p>
         </>
       )}

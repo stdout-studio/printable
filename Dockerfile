@@ -48,7 +48,7 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Data directory must be writable + persisted. Compose mounts a volume.
-ENV STDOUT_DATA_DIR=/app/data
+ENV KERF_DATA_DIR=/app/data
 RUN mkdir -p /app/data
 
 CMD ["pnpm", "--filter", "@printable/web", "start"]

@@ -1,11 +1,11 @@
 /**
- * Storage provider. Local mode: filesystem under $STDOUT_DATA_DIR/files.
- * Studio mode: shared S3-compatible bucket (stubbed).
+ * Storage provider. Local mode: filesystem under $KERF_DATA_DIR/files.
+ * Hosted mode: shared S3-compatible bucket (stubbed).
  */
 
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { IS_STUDIO } from './mode';
+import { IS_HOSTED } from './mode';
 
 export interface StorageProvider {
   /** Put bytes under a key. Returns a URL the app can serve to clients. */
@@ -16,7 +16,7 @@ export interface StorageProvider {
   delete(key: string): Promise<void>;
 }
 
-const DATA_DIR = process.env.STDOUT_DATA_DIR ?? path.resolve(process.cwd(), 'data');
+const DATA_DIR = process.env.KERF_DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const FILES_DIR = path.join(DATA_DIR, 'files');
 
 const localStorage: StorageProvider = {
@@ -45,16 +45,16 @@ const localStorage: StorageProvider = {
   },
 };
 
-const studioStorage: StorageProvider = {
+const hostedStorage: StorageProvider = {
   async put(_key, _bytes, _contentType) {
-    throw new Error('Studio storage not yet implemented.');
+    throw new Error('Hosted storage not yet implemented.');
   },
   async get() {
-    throw new Error('Studio storage not yet implemented.');
+    throw new Error('Hosted storage not yet implemented.');
   },
   async delete() {
-    throw new Error('Studio storage not yet implemented.');
+    throw new Error('Hosted storage not yet implemented.');
   },
 };
 
-export const storage: StorageProvider = IS_STUDIO ? studioStorage : localStorage;
+export const storage: StorageProvider = IS_HOSTED ? hostedStorage : localStorage;

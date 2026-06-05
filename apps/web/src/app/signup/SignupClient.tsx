@@ -28,7 +28,7 @@ export default function SignupClient() {
         const msg = res.error.message ?? 'Sign-up failed.';
         if (/disable|closed|not allowed/i.test(msg)) {
           setError(
-            'Sign-ups are closed on this instance. If you self-host and want to open them, set STDOUT_ALLOW_SIGNUPS=true.',
+            'Sign-ups are closed on this instance. If you self-host and want to open them, set KERF_ALLOW_SIGNUPS=true.',
           );
         } else {
           setError(msg);

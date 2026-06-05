@@ -1,16 +1,16 @@
 /**
- * Platform mode: local (self-hosted) or studio (hosted on stdout.studio).
+ * Run mode: local (self-hosted) or hosted.
  *
  * Default is `local` — that's the safe assumption when someone clones the
- * repo and runs it themselves. To activate Studio mode (shared auth, Stripe,
- * etc.), set STDOUT_MODE=studio in the environment.
+ * repo and runs it themselves. To activate Hosted mode (shared auth, Stripe,
+ * etc.), set KERF_MODE=hosted in the environment.
  */
 
-export type Mode = 'local' | 'studio';
+export type Mode = 'local' | 'hosted';
 
-const RAW_MODE = process.env.STDOUT_MODE?.trim().toLowerCase();
+const RAW_MODE = process.env.KERF_MODE?.trim().toLowerCase();
 
-export const MODE: Mode = RAW_MODE === 'studio' ? 'studio' : 'local';
+export const MODE: Mode = RAW_MODE === 'hosted' ? 'hosted' : 'local';
 
 export const IS_LOCAL = MODE === 'local';
-export const IS_STUDIO = MODE === 'studio';
+export const IS_HOSTED = MODE === 'hosted';

@@ -93,7 +93,7 @@ export function SelfHostGuide() {
                   </code>
                   . By default new signups are off — flip{' '}
                   <code className="bg-[var(--color-bg-elev)] border border-[var(--color-border)] rounded px-1.5 py-0.5 font-mono text-[0.85em]">
-                    STDOUT_ALLOW_SIGNUPS=true
+                    KERF_ALLOW_SIGNUPS=true
                   </code>{' '}
                   in your env to open them. Reset passwords from the admin
                   user's account settings.

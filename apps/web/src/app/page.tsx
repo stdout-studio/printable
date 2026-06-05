@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { LandingShell, Hero, Features, SelfHostGuide } from '@/platform/landing';
 import type { FeatureItem } from '@/platform/landing';
-import { IS_STUDIO } from '@/platform/mode';
+import { IS_HOSTED } from '@/platform/mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +32,8 @@ const features: FeatureItem[] = [
 export default function Page() {
   // Self-host (local mode) has no marketing site — drop straight into the raw
   // product. The /app layout handles first-run setup + login. The landing is
-  // studio (hosted) mode only.
-  if (!IS_STUDIO) redirect('/app');
+  // hosted mode only.
+  if (!IS_HOSTED) redirect('/app');
 
   return (
     <LandingShell>
