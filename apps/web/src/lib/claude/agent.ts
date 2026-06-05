@@ -105,7 +105,7 @@ export class PrintableAgent {
       const effort = this.model.startsWith('claude-opus-4-7') ? 'xhigh' : 'high';
       const stream = this.anthropic.messages.stream({
         model: this.model,
-        max_tokens: 16000,
+        max_tokens: 100000,
         thinking: { type: 'adaptive' },
         output_config: { effort },
         system: [
