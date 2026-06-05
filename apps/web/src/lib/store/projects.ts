@@ -1,9 +1,11 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { SessionState } from '@printable/types';
 import { base64ToArrayBuffer, loadMeshFromStlBytes } from '@/lib/mesh/loaders';
 import { rid } from '@/lib/utils';
+import { idbStorage } from './idbStorage';
 import { useRuntimeStore } from './runtime';
 import { useSessionStore } from './session';
 
@@ -11,11 +13,12 @@ import { useSessionStore } from './session';
  * Multi-project (Lovable-style) — one persistent chat that re-contexts per
  * project. The live working state stays in useSessionStore / useRuntimeStore;
  * this store holds a snapshot per project and orchestrates the swap. Geometry
- * is never stored here (it can't serialize); on switch we re-derive it from the
- * project's cached STL bytes.
+ * is never stored here (it can't serialize); it's re-derived from the project's
+ * cached STL bytes on switch / load.
  *
- * v1 is in-memory (switching within a session). Cross-reload persistence
- * (IndexedDB, to survive the mesh-byte volume) is the next step — see BUILD-PLAN.
+ * Persisted to IndexedDB (via `persist`) so projects survive reloads — IDB, not
+ * localStorage, because the snapshots carry base64 mesh bytes. On mount the app
+ * waits for hydration, then `loadCurrent()` rehydrates the live session.
  */
 
 export interface ProjectMeta {
@@ -27,9 +30,7 @@ export interface ProjectMeta {
 
 interface ProjectSnapshot {
   meta: ProjectMeta;
-  /** Full serializable session state (no live geometry). */
   session: SessionState;
-  /** webMeshId -> base64 STL, so geometry can be re-derived on switch. */
   meshBytes: Record<string, string>;
 }
 
@@ -40,11 +41,11 @@ interface ProjectsState {
 }
 
 interface ProjectsActions {
-  /** Wrap the current live session as the first project (once, on mount). */
   init: () => void;
-  /** Snapshot the live session + mesh bytes into the current project. */
   saveCurrent: () => void;
-  /** Create a fresh empty project and switch to it (shows the intake wizard). */
+  /** Rehydrate the live session + geometry from the current project snapshot
+   *  (used after persist hydration on mount). */
+  loadCurrent: () => void;
   createProject: (name?: string) => string;
   switchProject: (id: string) => void;
   renameProject: (id: string, name: string) => void;
@@ -77,6 +78,23 @@ function gatherMeshBytes(meshes: SessionState['meshes']): Record<string, string>
     if (b) out[m.id] = b;
   }
   return out;
+}
+
+/** Replace the live session + runtime geometry with a project snapshot. */
+function hydrateLiveFrom(snap: ProjectSnapshot): void {
+  useRuntimeStore.getState().resetMeshes();
+  useSessionStore.getState().hydrate(snap.session);
+  const rt = useRuntimeStore.getState();
+  for (const m of snap.session.meshes) {
+    const b = snap.meshBytes[m.id];
+    if (!b) continue;
+    rt.setMeshBytes(m.id, b);
+    try {
+      rt.setMeshGeometry(m.id, loadMeshFromStlBytes(base64ToArrayBuffer(b)).geometry);
+    } catch {
+      // corrupt bytes — UploadedMeshes shows a re-upload hint for this mesh
+    }
+  }
 }
 
 /** Auto-name an unnamed project ("Project N") from its first user message. */
@@ -119,112 +137,121 @@ function freshProject(name: string): ProjectSnapshot {
   return { meta: { id, name, createdAt: now, updatedAt: now }, session: emptySession(), meshBytes: {} };
 }
 
-export const useProjectsStore = create<ProjectsStore>((set, get) => ({
-  projects: {},
-  order: [],
-  currentProjectId: null,
+export const useProjectsStore = create<ProjectsStore>()(
+  persist(
+    (set, get) => ({
+      projects: {},
+      order: [],
+      currentProjectId: null,
 
-  init: () => {
-    if (get().currentProjectId) return;
-    const id = rid('proj');
-    const now = new Date().toISOString();
-    const session = snapshotSession();
-    set({
-      projects: {
-        [id]: {
-          meta: { id, name: 'Project 1', createdAt: now, updatedAt: now },
-          session,
-          meshBytes: gatherMeshBytes(session.meshes),
-        },
-      },
-      order: [id],
-      currentProjectId: id,
-    });
-  },
-
-  saveCurrent: () => {
-    const cur = get().currentProjectId;
-    const existing = cur ? get().projects[cur] : null;
-    if (!cur || !existing) return;
-    const session = snapshotSession();
-    set((state) => ({
-      projects: {
-        ...state.projects,
-        [cur]: {
-          meta: {
-            ...existing.meta,
-            name: deriveName(existing.meta.name, session),
-            updatedAt: new Date().toISOString(),
+      init: () => {
+        if (get().currentProjectId) return;
+        const id = rid('proj');
+        const now = new Date().toISOString();
+        const session = snapshotSession();
+        set({
+          projects: {
+            [id]: {
+              meta: { id, name: 'Project 1', createdAt: now, updatedAt: now },
+              session,
+              meshBytes: gatherMeshBytes(session.meshes),
+            },
           },
-          session,
-          meshBytes: gatherMeshBytes(session.meshes),
-        },
+          order: [id],
+          currentProjectId: id,
+        });
       },
-    }));
-  },
 
-  createProject: (name) => {
-    get().saveCurrent();
-    const proj = freshProject(name ?? `Project ${get().order.length + 1}`);
-    set((state) => ({
-      projects: { ...state.projects, [proj.meta.id]: proj },
-      order: [...state.order, proj.meta.id],
-      currentProjectId: proj.meta.id,
-    }));
-    // Reset the live stores so the new project starts clean (intake wizard shows).
-    useRuntimeStore.getState().resetMeshes();
-    useSessionStore.getState().reset();
-    return proj.meta.id;
-  },
+      saveCurrent: () => {
+        const cur = get().currentProjectId;
+        const existing = cur ? get().projects[cur] : null;
+        if (!cur || !existing) return;
+        const session = snapshotSession();
+        set((state) => ({
+          projects: {
+            ...state.projects,
+            [cur]: {
+              meta: {
+                ...existing.meta,
+                name: deriveName(existing.meta.name, session),
+                updatedAt: new Date().toISOString(),
+              },
+              session,
+              meshBytes: gatherMeshBytes(session.meshes),
+            },
+          },
+        }));
+      },
 
-  switchProject: (id) => {
-    if (id === get().currentProjectId) return;
-    const target = get().projects[id];
-    if (!target) return;
-    get().saveCurrent();
+      loadCurrent: () => {
+        const cur = get().currentProjectId;
+        const snap = cur ? get().projects[cur] : undefined;
+        if (snap) hydrateLiveFrom(snap);
+      },
 
-    useRuntimeStore.getState().resetMeshes();
-    useSessionStore.getState().hydrate(target.session);
-    const rt = useRuntimeStore.getState();
-    for (const m of target.session.meshes) {
-      const b = target.meshBytes[m.id];
-      if (!b) continue;
-      rt.setMeshBytes(m.id, b);
-      try {
-        const loaded = loadMeshFromStlBytes(base64ToArrayBuffer(b));
-        rt.setMeshGeometry(m.id, loaded.geometry);
-      } catch {
-        // Corrupt bytes — UploadedMeshes shows a re-upload hint for this mesh.
-      }
-    }
-    set({ currentProjectId: id });
-  },
+      createProject: (name) => {
+        get().saveCurrent();
+        const proj = freshProject(name ?? `Project ${get().order.length + 1}`);
+        set((state) => ({
+          projects: { ...state.projects, [proj.meta.id]: proj },
+          order: [...state.order, proj.meta.id],
+          currentProjectId: proj.meta.id,
+        }));
+        useRuntimeStore.getState().resetMeshes();
+        useSessionStore.getState().reset();
+        return proj.meta.id;
+      },
 
-  renameProject: (id, name) =>
-    set((state) => {
-      const p = state.projects[id];
-      if (!p) return {};
-      return { projects: { ...state.projects, [id]: { ...p, meta: { ...p.meta, name } } } };
+      switchProject: (id) => {
+        if (id === get().currentProjectId) return;
+        const target = get().projects[id];
+        if (!target) return;
+        get().saveCurrent();
+        hydrateLiveFrom(target);
+        set({ currentProjectId: id });
+      },
+
+      renameProject: (id, name) =>
+        set((state) => {
+          const p = state.projects[id];
+          if (!p) return {};
+          return { projects: { ...state.projects, [id]: { ...p, meta: { ...p.meta, name } } } };
+        }),
+
+      deleteProject: (id) => {
+        const state = get();
+        if (!state.projects[id]) return;
+        const remaining = state.order.filter((x) => x !== id);
+
+        if (remaining.length === 0) {
+          const proj = freshProject('Project 1');
+          set({ projects: { [proj.meta.id]: proj }, order: [proj.meta.id], currentProjectId: proj.meta.id });
+          useRuntimeStore.getState().resetMeshes();
+          useSessionStore.getState().reset();
+          return;
+        }
+
+        const wasCurrent = state.currentProjectId === id;
+        const nextProjects = { ...state.projects };
+        delete nextProjects[id];
+        set({
+          projects: nextProjects,
+          order: remaining,
+          currentProjectId: wasCurrent ? null : state.currentProjectId,
+        });
+        if (wasCurrent) get().switchProject(remaining[0]!);
+      },
     }),
-
-  deleteProject: (id) => {
-    const state = get();
-    if (!state.projects[id]) return;
-    const remaining = state.order.filter((x) => x !== id);
-
-    if (remaining.length === 0) {
-      // Never leave zero projects.
-      const proj = freshProject('Project 1');
-      set({ projects: { [proj.meta.id]: proj }, order: [proj.meta.id], currentProjectId: proj.meta.id });
-      useRuntimeStore.getState().resetMeshes();
-      useSessionStore.getState().reset();
-      return;
-    }
-
-    const wasCurrent = state.currentProjectId === id;
-    const nextProjects = { ...state.projects };
-    delete nextProjects[id];
-    set({ projects: nextProjects, order: remaining, currentProjectId: wasCurrent ? null : state.currentProjectId });
-    if (wasCurrent) get().switchProject(remaining[0]!);
-  },
-}));
+    {
+      name: 'kerf-projects',
+      version: 1,
+      storage: createJSONStorage(() => idbStorage),
+      // Persist only the data, not the action functions.
+      partialize: (s) => ({
+        projects: s.projects,
+        order: s.order,
+        currentProjectId: s.currentProjectId,
+      }),
+    },
+  ),
+);
