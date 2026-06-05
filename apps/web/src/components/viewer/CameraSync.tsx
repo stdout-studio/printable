@@ -31,9 +31,11 @@ export function CameraSync() {
     };
 
     const captureGlSnapshot = (): string => {
-      // The Canvas was created with preserveDrawingBuffer: true so this works.
-      // Force a render first to ensure the buffer matches the visible frame.
-      gl.render(gl.xr.getCamera ? gl.xr.getCamera() : camera, gl.xr.getCamera ? gl.xr.getCamera() as unknown as THREE.Camera : camera);
+      // The Canvas uses preserveDrawingBuffer:true + frameloop='always', so the
+      // framebuffer already holds the current visible frame — just read it.
+      // (Previously this forced gl.render() with the XR camera, which produced
+      // wrong/blank snapshots outside an XR session and corrupted drawing
+      // composites.)
       return gl.domElement.toDataURL('image/png');
     };
 

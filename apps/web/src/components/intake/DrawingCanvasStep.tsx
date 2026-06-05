@@ -1,7 +1,9 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { generateStarterCubeStl } from '@/lib/mesh/primitives';
+import { seedMeshFromStl } from '@/lib/intake/seedMesh';
 import { useSessionStore } from '@/lib/store/session';
 
 interface Props {
@@ -17,6 +19,7 @@ export function DrawingCanvasStep({ onComplete }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasContent, setHasContent] = useState(false);
+  const [busy, setBusy] = useState(false);
   const addAnnotation = useSessionStore((s) => s.addAnnotation);
 
   useEffect(() => {
@@ -75,19 +78,32 @@ export function DrawingCanvasStep({ onComplete }: Props) {
     setHasContent(false);
   }
 
-  function done() {
+  async function done() {
     const canvas = canvasRef.current;
-    if (!canvas || !hasContent) {
-      onComplete();
-      return;
+    if (canvas && hasContent) {
+      addAnnotation({
+        cameraState: { position: [0, 0, 5], target: [0, 0, 0], up: [0, 1, 0], fov: 50 },
+        imagePngDataUrl: canvas.toDataURL('image/png'),
+        width: canvas.width,
+        height: canvas.height,
+      });
     }
-    addAnnotation({
-      cameraState: { position: [0, 0, 5], target: [0, 0, 0], up: [0, 1, 0], fov: 50 },
-      imagePngDataUrl: canvas.toDataURL('image/png'),
-      width: canvas.width,
-      height: canvas.height,
-    });
-    onComplete();
+    // Seed an editable starter body so the agent has something concrete to shape
+    // toward the sketch. Generating arbitrary geometry from a 2D drawing isn't
+    // reliable yet; starting from a block the agent carves/extrudes is — and the
+    // sketch itself is now sent to the model as visual intent.
+    setBusy(true);
+    try {
+      await seedMeshFromStl(generateStarterCubeStl(50), {
+        label: hasContent ? 'Sketch base' : 'Starter block',
+        source: 'generated',
+        filename: 'sketch-base.stl',
+        role: 'active',
+      });
+    } finally {
+      setBusy(false);
+      onComplete();
+    }
   }
 
   return (
@@ -121,10 +137,12 @@ export function DrawingCanvasStep({ onComplete }: Props) {
 
       <div className="mt-4 flex gap-2">
         <button
-          onClick={done}
-          className="flex-1 rounded-xl bg-[var(--color-accent)] text-white py-2.5 hover:opacity-90"
+          onClick={() => void done()}
+          disabled={busy}
+          className="flex-1 rounded-xl bg-[var(--color-accent)] text-white py-2.5 hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
         >
-          {hasContent ? 'Continue with this sketch' : 'Skip and describe in chat'}
+          {busy && <Loader2 size={16} className="animate-spin" />}
+          {busy ? 'Setting up…' : hasContent ? 'Continue with this sketch' : 'Skip and describe in chat'}
         </button>
       </div>
     </div>

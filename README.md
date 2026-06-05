@@ -1,8 +1,9 @@
 # Printable
 
-AI-designed 3D-printable parts for things you already own. Scan, point,
-chat — Printable generates a manifold STL you can send straight to your
-slicer or to a print shop.
+Design 3D-printable parts by pointing, sketching, and chatting. Fit a part
+to something you own, remix an existing model, or start from scratch —
+Printable turns your intent into a manifold STL you can send straight to
+your slicer or a print shop.
 
 Part of [stdout.studio](https://stdout.studio). MIT licensed.
 

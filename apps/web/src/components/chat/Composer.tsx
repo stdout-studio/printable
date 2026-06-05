@@ -159,6 +159,7 @@ export function Composer() {
           userMessage: trimmed,
           conversationHistory: messages,
           points,
+          annotations,
           meshes,
           contextMeshId,
           activeMeshId,

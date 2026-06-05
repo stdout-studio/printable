@@ -11,9 +11,9 @@ import type { AppConfig } from './config';
 export const appConfig: AppConfig = {
   slug: 'printable',
   name: 'Printable',
-  tagline: 'AI-designed 3D-printable parts for things you already own.',
+  tagline: 'Design 3D-printable parts by pointing, sketching, and chatting.',
   description:
-    'Scan, point, and chat your way to a part that fits. Printable generates ready-to-print STL files for the things in your life — phone mounts, fixture brackets, replacement clips, custom adapters.',
+    'Point at it, draw on it, describe it — Printable turns your intent into a clean, ready-to-print STL. Fit a part to something you own, remix an existing model, or start from scratch: phone mounts, brackets, replacement clips, custom adapters, and whatever else you can describe.',
   githubUrl: 'https://github.com/stdout-studio/printable',
   selfHostCommand: 'git clone https://github.com/stdout-studio/printable && cd printable && docker compose up',
   guestModeEnabled: false,

@@ -5,9 +5,8 @@ import { useState } from 'react';
 import type { IntakeMode } from '@printable/types';
 import { ArrowLeft, Camera, FileBox, Loader2, Pencil, Scan, Sparkles } from 'lucide-react';
 import { useSessionStore } from '@/lib/store/session';
-import { useRuntimeStore } from '@/lib/store/runtime';
 import { generateStarterCubeStl } from '@/lib/mesh/primitives';
-import { loadMeshFromStlBytes } from '@/lib/mesh/loaders';
+import { seedMeshFromStl } from '@/lib/intake/seedMesh';
 import { DrawingCanvasStep } from './DrawingCanvasStep';
 import { MeshUploadStep } from './MeshUploadStep';
 import { PictureUploadStep } from './PictureUploadStep';
@@ -61,59 +60,24 @@ type Stage =
 
 export function IntakeWizard() {
   const setIntake = useSessionStore((s) => s.setIntake);
-  const addMesh = useSessionStore((s) => s.addMesh);
-  const setActiveMesh = useSessionStore((s) => s.setActiveMesh);
-  const setWorkerSessionId = useSessionStore((s) => s.setWorkerSessionId);
-  const setWorkerMeshId = useSessionStore((s) => s.setWorkerMeshId);
-  const setMeshGeometry = useRuntimeStore((s) => s.setMeshGeometry);
   const [stage, setStage] = useState<Stage>({ kind: 'pick' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function startFromScratch() {
-    // Generate a starter cube STL, ship it to the worker, AND seed the
-    // viewer with the same geometry. After this completes the user has
-    // a real, editable mesh — operations on it will actually mutate
-    // something the worker can export back.
+    // Seed a real, editable starter cube into both the viewer and the worker
+    // via the shared helper, so operations actually mutate something the worker
+    // can export back. Worker-offline is non-fatal.
     setBusy(true);
     setError(null);
     try {
-      const stlBytes = generateStarterCubeStl(50);
-      const loaded = loadMeshFromStlBytes(stlBytes);
-      const mesh = addMesh({
+      const result = await seedMeshFromStl(generateStarterCubeStl(50), {
         label: 'Starter cube',
         source: 'generated',
         filename: 'starter-cube.stl',
-        triangleCount: loaded.triangleCount,
-        boundingBox: loaded.boundingBox,
+        role: 'active',
       });
-      setMeshGeometry(mesh.id, loaded.geometry);
-      setActiveMesh(mesh.id);
-
-      // Push to worker
-      const stlBase64 = arrayBufferToBase64(stlBytes);
-      const res = await fetch('/api/blender/import', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          workerSessionId: null,
-          stlBase64,
-          filename: 'starter-cube.stl',
-          setActive: true,
-        }),
-      });
-      if (res.ok) {
-        const body = (await res.json()) as { workerSessionId: string; workerMeshId: string };
-        setWorkerSessionId(body.workerSessionId);
-        setWorkerMeshId(mesh.id, body.workerMeshId);
-      } else {
-        // Worker offline is non-fatal — viewer still shows the cube,
-        // agent will fall back to mock messaging.
-        const body = (await res.json().catch(() => null)) as { message?: string } | null;
-        setError(
-          body?.message ?? `Worker import failed (${res.status}). The cube is in the viewer but edits won't apply until the worker is up — run \`pnpm worker\`.`,
-        );
-      }
+      if (!result.workerOnline && result.warning) setError(result.warning);
       setIntake('from_scratch');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -248,15 +212,4 @@ function PickModeView({
       {error && <p className="mt-3 text-sm text-amber-600">{error}</p>}
     </div>
   );
-}
-
-function arrayBufferToBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    const sub = bytes.subarray(i, i + chunk);
-    binary += String.fromCharCode.apply(null, sub as unknown as number[]);
-  }
-  return btoa(binary);
 }

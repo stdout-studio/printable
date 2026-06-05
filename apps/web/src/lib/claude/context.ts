@@ -2,6 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import type {
   ChatContent,
   ChatMessage,
+  DrawingAnnotation,
   MeshHandle,
   PointToken,
 } from '@printable/types';
@@ -10,6 +11,11 @@ export interface AgentContextInput {
   userMessage: string;
   conversationHistory: ChatMessage[];
   points: PointToken[];
+  /** Hand-drawn sketches the user made over the part — from the intake "Draw it"
+   *  step or the in-viewer Draw overlay. Each carries a PNG of the strokes
+   *  composited over a snapshot of the model. Attached to the model as images so
+   *  the agent actually sees what was drawn; referenced in chat as @d1, @d2, …. */
+  annotations: DrawingAnnotation[];
   meshes: MeshHandle[];
   contextMeshId: string | null;
   activeMeshId: string | null;
@@ -61,6 +67,20 @@ export function buildContextMessages(
         },
       });
     }
+    // Sketches the user drew over the part. The stroke PNG is composited onto a
+    // snapshot of the model, so the agent sees the drawing in situ.
+    for (const a of input.annotations ?? []) {
+      const img = dataUrlToBase64(a.imagePngDataUrl);
+      if (!img) continue;
+      content.push({
+        type: 'text',
+        text: `(sketch @${a.label} below — the user drew this directly over the part; treat the strokes as the instruction/target for what to change or build, not as exact geometry)`,
+      });
+      content.push({
+        type: 'image',
+        source: { type: 'base64', media_type: img.mediaType, data: img.data },
+      });
+    }
     // Tag the LAST block in this user turn as the cache breakpoint so the
     // whole snapshot prefix (text + images) is cacheable across turns where
     // it doesn't change.
@@ -110,6 +130,16 @@ export function buildContextMessages(
   return messages;
 }
 
+/** Split a `data:image/png;base64,XXXX` URL into a media type + raw base64 body
+ *  for an Anthropic image block. Returns null if it isn't a recognised data URL. */
+function dataUrlToBase64(
+  dataUrl: string,
+): { mediaType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string } | null {
+  const m = /^data:(image\/(?:png|jpeg|webp|gif));base64,(.*)$/s.exec(dataUrl);
+  if (!m) return null;
+  return { mediaType: m[1] as 'image/png', data: m[2]! };
+}
+
 function renderSessionSnapshot(input: AgentContextInput): string | null {
   const lines: string[] = [];
 
@@ -138,6 +168,17 @@ function renderSessionSnapshot(input: AgentContextInput): string | null {
       lines.push(
         `- @${p.label} id=${p.id} — pos (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}) mm, normal (${nx.toFixed(2)}, ${ny.toFixed(2)}, ${nz.toFixed(2)}), on mesh ${p.meshId}${snap}`,
       );
+    }
+  }
+
+  if ((input.annotations?.length ?? 0) > 0) {
+    if (lines.length) lines.push('');
+    lines.push('## User sketches');
+    lines.push(
+      'Hand-drawn over the part — the PNG for each is attached below. Read them as visual intent (what to add / remove / reshape), not as exact geometry.',
+    );
+    for (const a of input.annotations!) {
+      lines.push(`- @${a.label} — sketch (image attached).`);
     }
   }
 

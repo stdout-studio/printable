@@ -311,15 +311,32 @@ export const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'measure',
-    description: 'Verify geometry numerically: raycast / distance / void check.',
+    description: [
+      'Verify geometry numerically. Pick `kind`:',
+      '- distance_between_points — straight-line mm between two clicked points. Needs fromPointId + toPointId.',
+      '- raycast_hit — does a ray from a point hit the body? Needs fromPointId (optional direction; defaults to the point surface normal).',
+      '- void_along_normal — depth of the cavity under a point along its inward normal. Needs fromPointId. Use this after a drill/pocket to confirm the hole reached the intended depth.',
+      '- min_wall_thickness — thinnest wall of a mesh in mm (optional meshId, defaults to active).',
+      '- bbox_dims — bounding-box dimensions in mm (optional meshId, defaults to active).',
+    ].join('\n'),
     input_schema: {
       type: 'object',
       properties: {
-        kind: { type: 'string', enum: ['raycast_from_point', 'distance_between_points', 'void_at_point'] },
-        fromPointId: { type: 'string' },
-        toPointId: { type: 'string' },
-        direction: VEC3,
-        expectedVoidMm: { type: 'number' },
+        kind: {
+          type: 'string',
+          enum: [
+            'distance_between_points',
+            'raycast_hit',
+            'void_along_normal',
+            'min_wall_thickness',
+            'bbox_dims',
+          ],
+        },
+        fromPointId: { type: 'string', description: 'Clicked point id (e.g. "pt_abc"). Required for distance/raycast/void kinds.' },
+        toPointId: { type: 'string', description: 'Second clicked point id, for distance_between_points.' },
+        direction: { ...VEC3, description: 'Optional ray direction for raycast_hit (defaults to the point surface normal).' },
+        expectedVoidMm: { type: 'number', description: 'Optional expected cavity depth for void_along_normal — compare against the measured value.' },
+        meshId: { type: 'string', description: 'Optional target mesh for min_wall_thickness / bbox_dims. Defaults to the active mesh.' },
       },
       required: ['kind'],
     },

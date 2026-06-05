@@ -3,6 +3,7 @@
 import { Loader2, Search, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { seedMeshFromStl } from '@/lib/intake/seedMesh';
 
 interface Props {
   onComplete: () => void;
@@ -24,6 +25,7 @@ export function PictureUploadStep({ onComplete }: Props) {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<RetrievalResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -57,6 +59,27 @@ export function PictureUploadStep({ onComplete }: Props) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function pickResult(r: RetrievalResult) {
+    setLoadingId(r.modelId);
+    setError(null);
+    try {
+      const res = await fetch(r.stlUrl);
+      if (!res.ok) throw new Error(`Couldn't load that model (${res.status}).`);
+      const bytes = await res.arrayBuffer();
+      await seedMeshFromStl(bytes, {
+        label: r.title || 'Reference model',
+        source: 'reference',
+        filename: `${r.modelId}.stl`,
+        role: 'active',
+      });
+      onComplete();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingId(null);
     }
   }
 
@@ -142,9 +165,15 @@ export function PictureUploadStep({ onComplete }: Props) {
           {results.map((r) => (
             <button
               key={r.modelId}
-              className="border border-[var(--color-border)] rounded-xl p-2 text-left hover:border-[var(--color-accent)]"
-              onClick={onComplete}
+              disabled={loadingId !== null}
+              className="relative border border-[var(--color-border)] rounded-xl p-2 text-left hover:border-[var(--color-accent)] disabled:opacity-60"
+              onClick={() => void pickResult(r)}
             >
+              {loadingId === r.modelId && (
+                <div className="absolute inset-0 z-10 grid place-items-center rounded-xl bg-white/70 backdrop-blur-sm">
+                  <Loader2 size={20} className="animate-spin text-[var(--color-accent)]" />
+                </div>
+              )}
               <Image
                 src={r.thumbnailUrl}
                 alt={r.title}

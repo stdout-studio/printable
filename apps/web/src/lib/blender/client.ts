@@ -17,18 +17,23 @@ export interface ApplyOperationInput extends Record<string, unknown> {
 }
 
 export interface RenderPreviewInput {
-  view: string;
+  /** Named camera angle the agent asked for — matches the render_preview tool's
+   *  `cameraPreset` enum (front/back/left/right/top/bottom/iso/current). These
+   *  are the exact keys the agent emits; forward them verbatim so the worker
+   *  honours the requested angle instead of always falling back to 'iso'. */
+  cameraPreset?: string;
   style?: string;
-  show_axes?: boolean;
+  showAxes?: boolean;
   orthographic?: boolean;
 }
 
 export interface MeasureInput {
   kind: string;
-  from_point_id?: string;
-  to_point_id?: string;
+  fromPointId?: string;
+  toPointId?: string;
   direction?: [number, number, number];
-  expected_void_mm?: number;
+  expectedVoidMm?: number;
+  meshId?: string;
 }
 
 const CALL_TIMEOUT_MS = 30_000;
@@ -120,9 +125,9 @@ export class BlenderClient {
       input,
       (sid) => `/sessions/${sid}/render_preview`,
       (i) => ({
-        cameraPreset: i.view,
+        cameraPreset: i.cameraPreset ?? 'iso',
         style: i.style ?? 'solid_engineering',
-        showAxes: i.show_axes ?? true,
+        showAxes: i.showAxes ?? true,
         orthographic: i.orthographic ?? true,
         width: 1024,
         height: 1024,
@@ -140,7 +145,12 @@ export class BlenderClient {
     return this.sessionCall(
       input,
       (sid) => `/sessions/${sid}/measure`,
-      (i) => ({ ...i }),
+      // Forward the agent's camelCase keys verbatim (the worker accepts them
+      // via Pydantic aliases). Only meshId needs web→worker translation.
+      (i) => ({
+        ...i,
+        ...(i.meshId ? { meshId: this.translateMeshId(i.meshId) } : {}),
+      }),
       {
         mocked: true,
         reason: 'blender worker not deployed yet',
