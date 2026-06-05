@@ -1,4 +1,4 @@
-# Printable
+# Kerf
 
 Design 3D-printable parts by pointing, sketching, and chatting. Fit a part
 to something you own, remix an existing model, or start from scratch —
@@ -11,7 +11,7 @@ Part of [stdout.studio](https://stdout.studio). MIT licensed.
 
 ## Try it
 
-**Hosted**: [printable.stdout.studio](https://printable.stdout.studio)
+**Hosted**: [kerf.stdout.studio](https://kerf.stdout.studio)
 
 **Self-host**:
 

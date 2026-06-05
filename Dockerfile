@@ -1,4 +1,4 @@
-# Web app image for Printable. Multi-stage build keeps the final image
+# Web app image for Kerf. Multi-stage build keeps the final image
 # small and excludes dev dependencies + source. Compiles better-sqlite3
 # from source at install time (needs python + make + g++ in the build stage).
 

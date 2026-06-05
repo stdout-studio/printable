@@ -1,27 +1,28 @@
-# Minimal docker-compose for self-hosting Printable.
+# Self-host Kerf — web + Blender worker.
 #
-# 1. Copy .env.example to .env and fill in your ANTHROPIC_API_KEY
-# 2. docker compose up --build
-# 3. Open http://localhost:3000 — the setup wizard greets you on first boot
+#   1. cp .env.example .env   and set ANTHROPIC_API_KEY
+#   2. docker compose up --build
+#   3. open http://localhost:3000 — first boot lands on the setup wizard;
+#      pick an admin password and you're in. Local mode has no marketing
+#      landing — you go straight to the product.
 #
-# The Blender worker that powers actual mesh editing is intentionally
-# commented out below — Blender's runtime is heavy (several hundred MB)
-# and not every self-host scenario needs it. The web app degrades
-# gracefully without the worker: the AI agent runs in mock mode and tells
-# you it can't perform edits. See docs/self-host-blender.md to enable
-# the full stack.
+# The blender-worker ships a real Blender binary, so the FIRST build is large
+# (~1 GB, downloads Blender). It's what lets the agent actually edit geometry;
+# without it the agent runs in mock mode and says it can't perform edits. To
+# try just the UI, comment out the blender-worker service + its depends_on and
+# drop BLENDER_WORKER_URL.
 
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    image: printable-web:local
+    image: kerf-web:local
     restart: unless-stopped
     ports:
       - '${WEB_PORT:-3000}:3000'
     environment:
-      # Forwarded from the host .env file (docker-compose auto-loads it).
+      # Forwarded from the host .env (docker compose auto-loads it).
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       STDOUT_MODE: local
       STDOUT_DATA_DIR: /app/data
@@ -29,18 +30,19 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
       BLENDER_WORKER_URL: ${BLENDER_WORKER_URL:-http://blender-worker:8080}
     volumes:
-      - printable-data:/app/data
+      - kerf-data:/app/data
+    depends_on:
+      - blender-worker
 
-  # Uncomment to enable AI-driven mesh editing. Requires the
-  # blender-worker image (see docs/self-host-blender.md to build it).
-  #
-  # blender-worker:
-  #   build:
-  #     context: ./apps/blender-worker
-  #   image: printable-blender-worker:local
-  #   restart: unless-stopped
-  #   expose:
-  #     - '8080'
+  blender-worker:
+    build:
+      context: ./apps/blender-worker
+    image: kerf-blender-worker:local
+    restart: unless-stopped
+    expose:
+      - '8080'
+    environment:
+      WORKER_CORS_ORIGINS: '*'
 
 volumes:
-  printable-data:
+  kerf-data:
