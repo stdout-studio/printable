@@ -2,6 +2,7 @@
 
 import { useSessionStore } from '@/lib/store/session';
 import { appConfig } from '@/platform/app-config';
+import { BrandMark } from '@/platform/BrandMark';
 import { Composer } from './Composer';
 import { Message } from './Message';
 
@@ -13,7 +14,7 @@ export function ChatPanel() {
     <div className="h-full flex flex-col">
       <header className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-[1px] bg-[var(--flux)] shadow-[0_0_8px_var(--flux-glow)]" />
+          <BrandMark size={18} />
           <h1 className="text-base font-semibold tracking-tight lowercase">{appConfig.name}</h1>
         </div>
         <button
