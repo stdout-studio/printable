@@ -29,10 +29,25 @@ export type ChatContent =
   | { type: 'drawing_ref'; annotationId: string; label: string }
   | { type: 'render_preview'; pngDataUrl: string; label?: string };
 
+export interface OpStep {
+  toolUseId: string;
+  /** Tool name, e.g. "boolean_diff". */
+  name: string;
+  /** Short mono summary, e.g. "@p1 · r2.5 · cut". */
+  detail: string;
+  status: 'running' | 'ok' | 'error';
+  /** Slimmed input/result for the collapsible raw view (heavy base64 stripped). */
+  input?: unknown;
+  result?: unknown;
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
   content: ChatContent[];
+  /** The agent's tool calls for this message, shown as inline operation steps
+   *  (the flight-recorder), streamed in as the agent works. */
+  ops?: OpStep[];
   createdAt: string;
 }
 

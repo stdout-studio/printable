@@ -1,6 +1,8 @@
 'use client';
 
-import type { ChatMessage } from '@printable/types';
+import { useState } from 'react';
+import { Check, ChevronRight, X } from 'lucide-react';
+import type { ChatMessage, OpStep } from '@printable/types';
 import { useSessionStore } from '@/lib/store/session';
 import clsx from 'clsx';
 
@@ -60,7 +62,58 @@ export function Message({ message }: { message: ChatMessage }) {
           }
           return null;
         })}
+        {message.ops && message.ops.length > 0 && (
+          <div className="mt-1.5 space-y-1 border-l border-[var(--line)] pl-2.5">
+            {message.ops.map((op) => (
+              <OpRow key={op.toolUseId} op={op} />
+            ))}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** One agent tool call, rendered as a compact mono step — the inline
+ *  flight-recorder. Collapsed by default; expands to the raw input/result. */
+function OpRow({ op }: { op: OpStep }) {
+  const [open, setOpen] = useState(false);
+  const hasRaw = op.input != null || op.result != null;
+  return (
+    <div className="mono text-[11px]">
+      <button
+        onClick={() => hasRaw && setOpen((o) => !o)}
+        className={clsx(
+          'flex items-center gap-1.5 w-full text-left',
+          hasRaw ? 'cursor-pointer' : 'cursor-default',
+        )}
+      >
+        <span className="flex-shrink-0 grid place-items-center w-3.5 h-3.5">
+          {op.status === 'running' ? (
+            <span className="kerf-pulse h-1.5 w-1.5 rounded-full bg-[var(--status-process)]" />
+          ) : op.status === 'ok' ? (
+            <Check size={12} className="text-[var(--flux)]" />
+          ) : (
+            <X size={12} className="text-[var(--status-danger)]" />
+          )}
+        </span>
+        <span className="text-[var(--fg-muted)]">{op.name}</span>
+        {op.detail && <span className="text-[var(--fg-dim)] truncate">· {op.detail}</span>}
+        {hasRaw && (
+          <ChevronRight
+            size={11}
+            className={clsx(
+              'ml-auto flex-shrink-0 text-[var(--fg-dim)] transition-transform',
+              open && 'rotate-90',
+            )}
+          />
+        )}
+      </button>
+      {open && hasRaw && (
+        <pre className="mt-1 ml-5 p-2 rounded-md bg-[var(--bg-void)] border border-[var(--line)] text-[10px] text-[var(--fg-dim)] overflow-auto max-h-56 whitespace-pre-wrap break-words">
+          {JSON.stringify({ input: op.input, result: op.result }, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

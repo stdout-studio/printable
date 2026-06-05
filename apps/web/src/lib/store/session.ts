@@ -6,6 +6,7 @@ import type {
   DrawingAnnotation,
   IntakeMode,
   MeshHandle,
+  OpStep,
   PointToken,
   SessionState,
 } from '@printable/types';
@@ -24,6 +25,8 @@ interface SessionActions {
   setWorkerSessionId: (id: string | null) => void;
   appendMessage: (msg: Omit<ChatMessage, 'id' | 'createdAt'>) => ChatMessage;
   appendTextToMessage: (messageId: string, text: string) => void;
+  addOpStep: (messageId: string, step: OpStep) => void;
+  updateOpStep: (messageId: string, toolUseId: string, patch: Partial<OpStep>) => void;
   setIntake: (mode: IntakeMode) => void;
   setContextMesh: (id: string | null) => void;
   setActiveMesh: (id: string | null) => void;
@@ -116,6 +119,25 @@ export const useSessionStore = create<SessionStore>()((set, get) => ({
         }
         return { ...m, content };
       }),
+    })),
+  addOpStep: (messageId, step) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.id === messageId ? { ...m, ops: [...(m.ops ?? []), step] } : m,
+      ),
+    })),
+  updateOpStep: (messageId, toolUseId, patch) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              ops: (m.ops ?? []).map((o) =>
+                o.toolUseId === toolUseId ? { ...o, ...patch } : o,
+              ),
+            }
+          : m,
+      ),
     })),
   setIntake: (mode) =>
     set({ intake: { mode, completedAt: new Date().toISOString() } }),

@@ -6,6 +6,7 @@ import { useSessionStore } from '@/lib/store/session';
 import { useRuntimeStore } from '@/lib/store/runtime';
 import { snapshotCanvasDownsampled } from '@/lib/mesh/snapshot';
 import { base64ToArrayBuffer, loadMeshFromStlBytes } from '@/lib/mesh/loaders';
+import { summarizeOp, slimForDisplay } from '@/lib/claude/opSummary';
 import type { ChatContent } from '@printable/types';
 
 const POINT_TOKEN_REGEX = /@(p\d+)/g;
@@ -45,6 +46,8 @@ export function Composer() {
   const workerSessionId = useSessionStore((s) => s.workerSessionId);
   const appendMessage = useSessionStore((s) => s.appendMessage);
   const appendTextToMessage = useSessionStore((s) => s.appendTextToMessage);
+  const addOpStep = useSessionStore((s) => s.addOpStep);
+  const updateOpStep = useSessionStore((s) => s.updateOpStep);
   const clearPoints = useSessionStore((s) => s.clearPoints);
 
   function captureViewportSnapshot(): string | null {
@@ -231,14 +234,27 @@ export function Composer() {
                 useSessionStore.getState().setWorkerMeshId(webId, workerId);
               }
             }
+          } else if (event.type === 'tool_use_start' && event.toolUseId && event.toolName) {
+            // Surface the agent's tool call as a live operation step (the
+            // flight-recorder), instead of hiding it as silent build chatter.
+            addOpStep(assistantMsg.id, {
+              toolUseId: event.toolUseId,
+              name: event.toolName,
+              detail: summarizeOp(event.toolName, event.input),
+              status: 'running',
+              input: slimForDisplay(event.input),
+            });
+          } else if (event.type === 'tool_result' && event.toolUseId) {
+            updateOpStep(assistantMsg.id, event.toolUseId, {
+              status: event.isError ? 'error' : 'ok',
+              result: slimForDisplay(event.result),
+            });
           } else if (event.type === 'error') {
             appendTextToMessage(
               assistantMsg.id,
               `\n\n[error: ${event.message ?? 'unknown'}]`,
             );
           }
-          // Tool dispatch events (tool_use_start, tool_result) stay
-          // in the network log — they're build chatter, not chat content.
         }
       }
     } catch (err) {
