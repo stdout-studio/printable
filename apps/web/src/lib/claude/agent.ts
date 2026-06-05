@@ -5,6 +5,7 @@ import { SYSTEM_PROMPT } from './prompt';
 import { MESH_MUTATING_TOOLS, TOOLS } from './tools';
 
 export type AgentEvent =
+  | { type: 'turn_start' }
   | { type: 'text_delta'; text: string }
   | { type: 'tool_use_start'; toolName: string; toolUseId: string; input: unknown }
   | {
@@ -31,6 +32,39 @@ function isMocked(result: unknown): boolean {
   // Treat session_expired and worker_error like "didn't happen" for purposes
   // of mesh re-export — there's nothing new to export.
   return r.mocked === true || r.session_expired === true || r.worker_error === true;
+}
+
+/** A tool call may return HTTP 200 with an in-band failure field
+ *  (script_error from raw_bpy, error from exec_bpy, mocked-fallback notes,
+ *  worker_error). Return a short string when one is present so the agent
+ *  loop can log it; otherwise undefined. */
+function extractInbandError(result: unknown): string | undefined {
+  if (typeof result !== 'object' || result === null) return undefined;
+  const r = result as Record<string, unknown>;
+  if (typeof r.script_error === 'string' && r.script_error.length > 0) {
+    return `script_error: ${r.script_error}`;
+  }
+  if (typeof r.error === 'string' && r.error.length > 0) {
+    return `error: ${r.error}`;
+  }
+  if (r.mocked === true) {
+    const reason = typeof r.reason === 'string' ? r.reason : 'no reason given';
+    // `worker_status` is set by the BlenderClient catch path with the
+    // underlying fetch failure (timeout, ECONNREFUSED, abort, …). It's
+    // the line that tells us what *actually* went wrong vs. the generic
+    // "mocked" canned reason.
+    const status =
+      typeof r.worker_status === 'string' ? ` [${r.worker_status}]` : '';
+    return `mocked: ${reason}${status}`;
+  }
+  if (r.session_expired === true) return 'session_expired';
+  if (r.worker_error === true) {
+    const status = typeof r.status === 'number' ? r.status : 0;
+    const reason = typeof r.reason === 'string' ? r.reason : '';
+    const detail = typeof r.detail === 'string' ? r.detail.slice(0, 300) : '';
+    return `worker_error HTTP ${status}${reason ? ` — ${reason}` : ''}${detail ? ` | detail: ${detail}` : ''}`;
+  }
+  return undefined;
 }
 
 function extractStlBase64(result: unknown): string | undefined {
@@ -101,11 +135,15 @@ export class PrintableAgent {
     const messages = buildContextMessages(input);
 
     for (let turn = 0; turn < this.maxTurns; turn++) {
-      // effort='xhigh' is Opus-4.7-only. For Sonnet drop to 'high'.
-      const effort = this.model.startsWith('claude-opus-4-7') ? 'xhigh' : 'high';
+      // effort='xhigh' is Opus-4.7-only. Sonnet on 'high' was burning 10+
+      // minutes of extended thinking on multi-turn conversations with
+      // images before emitting a single tool call — feels indistinguishable
+      // from broken. 'medium' still reasons well for this scale of geom
+      // work and turns feel interactive.
+      const effort = this.model.startsWith('claude-opus-4-7') ? 'xhigh' : 'medium';
       const stream = this.anthropic.messages.stream({
         model: this.model,
-        max_tokens: 16000,
+        max_tokens: 100000,
         thinking: { type: 'adaptive' },
         output_config: { effort },
         system: [
@@ -119,8 +157,27 @@ export class PrintableAgent {
         messages,
       });
 
+      // Tell the UI we're working *before* a single token comes back, so the
+      // assistant bubble shows a "Thinking…" pulse instead of sitting empty
+      // through a long extended-thinking pass.
+      yield { type: 'turn_start' };
+
       for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        if (event.type === 'content_block_start') {
+          // Surface tool calls the instant the model commits to one — not
+          // after the entire stream finalizes. Input here is still empty
+          // (the SDK fills it via input_json_delta); the dispatch loop
+          // below re-emits with the full input and the client merges by id.
+          const block = event.content_block;
+          if (block.type === 'tool_use') {
+            yield {
+              type: 'tool_use_start',
+              toolName: block.name,
+              toolUseId: block.id,
+              input: block.input,
+            };
+          }
+        } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
           yield { type: 'text_delta', text: event.delta.text };
         }
       }
@@ -147,6 +204,18 @@ export class PrintableAgent {
         };
         try {
           const result = await this.dispatch(toolUse.name, toolUse.input);
+          // Worker calls can return HTTP 200 with an in-band error field
+          // (script_error, mocked, error). The agent loop keeps going either
+          // way, but if we don't log these the dev console looks fine while
+          // the model is actually paraphrasing "my script crashed" as
+          // "tools not reachable". Surface it in the server log.
+          const inband = extractInbandError(result);
+          if (inband) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[agent] ${toolUse.name} returned in-band error: ${inband}`,
+            );
+          }
           yield {
             type: 'tool_result',
             toolName: toolUse.name,
@@ -226,6 +295,18 @@ export class PrintableAgent {
 
   private async dispatch(name: string, input: unknown): Promise<unknown> {
     if (MESH_MUTATING_TOOLS.has(name)) {
+      // Surface the raw_bpy python_script in the dev log so when a script
+      // hangs or 504s we can read what the model actually sent — otherwise
+      // we're guessing.
+      if (name === 'raw_bpy') {
+        const script = (input as { pythonScript?: string })?.pythonScript;
+        if (typeof script === 'string') {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[agent] raw_bpy script (${script.length} chars):\n${script}\n---`,
+          );
+        }
+      }
       // Forward the input verbatim, prefixed with `type: <tool name>` so the
       // worker can route it to the right Pydantic Operation variant.
       const op = {

@@ -27,6 +27,7 @@ interface SessionActions {
   appendTextToMessage: (messageId: string, text: string) => void;
   addOpStep: (messageId: string, step: OpStep) => void;
   updateOpStep: (messageId: string, toolUseId: string, patch: Partial<OpStep>) => void;
+  setMessagePending: (messageId: string, pending: boolean) => void;
   setIntake: (mode: IntakeMode) => void;
   setContextMesh: (id: string | null) => void;
   setActiveMesh: (id: string | null) => void;
@@ -122,9 +123,20 @@ export const useSessionStore = create<SessionStore>()((set, get) => ({
     })),
   addOpStep: (messageId, step) =>
     set((s) => ({
-      messages: s.messages.map((m) =>
-        m.id === messageId ? { ...m, ops: [...(m.ops ?? []), step] } : m,
-      ),
+      messages: s.messages.map((m) => {
+        if (m.id !== messageId) return m;
+        // Idempotent on toolUseId: an earlier eager emit (from
+        // content_block_start, with empty input) is followed by a richer
+        // emit once finalMessage resolves with the full input — merge
+        // instead of duplicating.
+        const ops = m.ops ?? [];
+        const idx = ops.findIndex((o) => o.toolUseId === step.toolUseId);
+        if (idx >= 0) {
+          const merged = { ...ops[idx]!, ...step };
+          return { ...m, ops: ops.map((o, i) => (i === idx ? merged : o)) };
+        }
+        return { ...m, ops: [...ops, step] };
+      }),
     })),
   updateOpStep: (messageId, toolUseId, patch) =>
     set((s) => ({
@@ -138,6 +150,10 @@ export const useSessionStore = create<SessionStore>()((set, get) => ({
             }
           : m,
       ),
+    })),
+  setMessagePending: (messageId, pending) =>
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === messageId ? { ...m, pending } : m)),
     })),
   setIntake: (mode) =>
     set({ intake: { mode, completedAt: new Date().toISOString() } }),

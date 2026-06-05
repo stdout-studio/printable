@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import builtins
 import hashlib
 import io
 import json
@@ -818,6 +819,7 @@ def _exec_bpy_code(ctx, code: str) -> dict:
         "Vector": Vector,
         "ctx": ctx,
         "session_dir": str(session_dir),
+        "__name__": "__exec_bpy__",
         "__builtins__": {
             # Tight builtins; anything more we re-add explicitly.
             "len": len,
@@ -842,6 +844,14 @@ def _exec_bpy_code(ctx, code: str) -> dict:
             "False": False,
             "None": None,
             "Exception": Exception,
+            # Real __import__ so `import bpy / import bmesh / from mathutils
+            # import Vector` (which Sonnet/Opus reflexively write) actually
+            # work. The AST validator in safety.py already gates *which*
+            # modules can be imported — os/subprocess/sys/etc. are rejected
+            # at parse time — so this only resolves modules we've vetted.
+            # User code still can't reference the bare name `__import__`
+            # (DENIED_NAMES blocks that at parse time).
+            "__import__": builtins.__import__,
         },
     }
     buf = io.StringIO()

@@ -36,7 +36,13 @@ export interface MeasureInput {
   meshId?: string;
 }
 
-const CALL_TIMEOUT_MS = 30_000;
+// Match the worker's own per-op cap (apply_operation uses timeout=300s in
+// main.py) with a buffer. A raw_bpy script doing 3 button pockets + 6
+// cable through-holes is 9 booleans on a heavy mesh and can comfortably
+// exceed two minutes; the 30s we used to enforce here aborted partway
+// through, and the fall-through mock told the model "worker not deployed",
+// which it then (badly) summarized as "I can't reach my edit tools".
+const CALL_TIMEOUT_MS = 360_000;
 
 export class BlenderClient {
   private sessionIdPromise: Promise<string> | null = null;
@@ -100,16 +106,44 @@ export class BlenderClient {
     return id;
   }
 
+  /** Translate every web mesh id appearing as a quoted-string token in
+   *  free-form text (e.g. raw_bpy python_script) to its worker id. The
+   *  model sees only web ids in the context snapshot, so its scripts
+   *  naturally reference `mh_xxx`; ctx.resolve / bpy.data.objects.get
+   *  expect worker ids. Without this step every raw_bpy lookup KeyErrors,
+   *  the worker returns script_error, and the model paraphrases the
+   *  failure as "tools not reachable". Matches whole-token only — no
+   *  partial substring replacements. */
+  private translateMeshIdsInScript(script: string): string {
+    if (!script || this.meshIdMap.size === 0) return script;
+    let out = script;
+    for (const [webId, workerId] of this.meshIdMap.entries()) {
+      if (webId === workerId) continue;
+      // Token boundary: anything not in [A-Za-z0-9_] on each side. Avoids
+      // matching `mh_j6h7kjlv` inside an unrelated identifier.
+      const re = new RegExp(`(?<![A-Za-z0-9_])${webId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_])`, 'g');
+      out = out.replace(re, workerId);
+    }
+    return out;
+  }
+
   async applyOperation(input: ApplyOperationInput): Promise<unknown> {
     return this.sessionCall(
       input,
       (sid) => `/sessions/${sid}/apply_operation`,
-      (i) => ({
-        // Forward the full op object — its shape matches the worker's
-        // Pydantic Operation union exactly. Only the meshId needs to be
-        // remapped from the web id to the worker id.
-        op: { ...i, meshId: this.translateMeshId(i.meshId) },
-      }),
+      (i) => {
+        const base = { ...i, meshId: this.translateMeshId(i.meshId) };
+        // raw_bpy's python_script contains free-form code the model wrote.
+        // It almost always references mesh ids it copied from the context
+        // snapshot, which are web ids — translate those too so `ctx.resolve`
+        // and `bpy.data.objects.get` find what the model expects.
+        const ipy = (i as unknown as { pythonScript?: string }).pythonScript;
+        if (typeof ipy === 'string') {
+          (base as unknown as { pythonScript: string }).pythonScript =
+            this.translateMeshIdsInScript(ipy);
+        }
+        return { op: base };
+      },
       {
         mocked: true,
         reason: 'blender worker not deployed yet',

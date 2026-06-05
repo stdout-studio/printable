@@ -171,7 +171,11 @@ export async function POST(req: NextRequest) {
           );
           if (exportRes.ok) {
             const exportJson = (await exportRes.json()) as { stlBase64?: string };
-            if (exportJson.stlBase64) {
+            // Only push the STL down if it actually differs from what the
+            // client already has. Otherwise we burn megabytes (and freeze the
+            // main thread re-decoding base64) for no visible change.
+            const clientHas = body.meshStlBase64s?.[body.activeMeshId];
+            if (exportJson.stlBase64 && exportJson.stlBase64 !== clientHas) {
               controller.enqueue(
                 encoder.encode(
                   `${JSON.stringify({

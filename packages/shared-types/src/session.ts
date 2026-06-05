@@ -48,6 +48,10 @@ export interface ChatMessage {
   /** The agent's tool calls for this message, shown as inline operation steps
    *  (the flight-recorder), streamed in as the agent works. */
   ops?: OpStep[];
+  /** True while the agent is working but hasn't produced any visible
+   *  content yet — drives a "Thinking…" pulse so the user isn't staring
+   *  at an empty bubble during long thinking turns. */
+  pending?: boolean;
   createdAt: string;
 }
 
