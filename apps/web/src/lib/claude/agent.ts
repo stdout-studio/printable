@@ -59,8 +59,10 @@ function extractInbandError(result: unknown): string | undefined {
   }
   if (r.session_expired === true) return 'session_expired';
   if (r.worker_error === true) {
-    const msg = typeof r.message === 'string' ? r.message : 'unknown';
-    return `worker_error: ${msg}`;
+    const status = typeof r.status === 'number' ? r.status : 0;
+    const reason = typeof r.reason === 'string' ? r.reason : '';
+    const detail = typeof r.detail === 'string' ? r.detail.slice(0, 300) : '';
+    return `worker_error HTTP ${status}${reason ? ` — ${reason}` : ''}${detail ? ` | detail: ${detail}` : ''}`;
   }
   return undefined;
 }
@@ -293,6 +295,18 @@ export class PrintableAgent {
 
   private async dispatch(name: string, input: unknown): Promise<unknown> {
     if (MESH_MUTATING_TOOLS.has(name)) {
+      // Surface the raw_bpy python_script in the dev log so when a script
+      // hangs or 504s we can read what the model actually sent — otherwise
+      // we're guessing.
+      if (name === 'raw_bpy') {
+        const script = (input as { pythonScript?: string })?.pythonScript;
+        if (typeof script === 'string') {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[agent] raw_bpy script (${script.length} chars):\n${script}\n---`,
+          );
+        }
+      }
       // Forward the input verbatim, prefixed with `type: <tool name>` so the
       // worker can route it to the right Pydantic Operation variant.
       const op = {

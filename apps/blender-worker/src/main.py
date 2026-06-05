@@ -205,8 +205,13 @@ async def apply_operation(
         async with session.lock:
             # Pre-checkpoint, then dispatch.
             snap_id = await session.checkpoint(label=f"pre_{op_dict['type']}")
+            # Was 120s. A raw_bpy that does many sequential booleans on a
+            # heavy mesh (e.g. 3 button pockets + 6 cable through-holes)
+            # comfortably exceeds that; the resulting 504 is opaque to the
+            # agent. 300s is enough headroom for real work without making
+            # truly stuck scripts hide forever.
             result = await session.transport.call(
-                "apply_operation", {"op": op_dict}, timeout=120.0
+                "apply_operation", {"op": op_dict}, timeout=300.0
             )
             warnings = result.get("warnings", []) or []
             session.append_history(op_dict["type"], snapshot_id=snap_id, warnings=warnings)
